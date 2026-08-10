@@ -53,7 +53,9 @@ matwana/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/matwana.git
+git clone https://github.com/Mwas1515/Matwana.git
+```
+```
 cd matwana
 ```
 
