@@ -192,13 +192,9 @@ def garage_menu(player, matatu):
 
         print(f"Money: KSh {player.money}")
 
-        print("\nAvailable upgrades:")
-        print("1. Engine - KSh 5,000")
-        print("2. Suspension - KSh 3,000")
-        print("3. Seats - KSh 4,000")
-        print("4. Fuel Tank - KSh 3,500")
-        print("5. Comfort - KSh 2,500")
-        print("6. Leave Garage")
+        Garage.display_upgrades(matatu)
+
+        print("\n6. Leave Garage")
 
         choice = input("\nChoose an upgrade: ")
 
@@ -211,10 +207,12 @@ def garage_menu(player, matatu):
         }
 
         if choice in upgrades:
+            upgrade = upgrades[choice]
+
             Garage.upgrade_matatu(
                 player,
                 matatu,
-                upgrades[choice]
+                upgrade
             )
 
         elif choice == "6":
@@ -498,10 +496,6 @@ def main():
 
     database.create_tables()
 
-    # -------------------------
-    # LOAD OR CREATE PLAYER
-    # -------------------------
-
     player = Player("Goon")
 
     player_data = database.get_player(
@@ -525,10 +519,6 @@ def main():
         player.reputation = player_data[5]
 
         print("\nPlayer progress loaded.")
-
-    # -------------------------
-    # LOAD OR CREATE MATATU
-    # -------------------------
 
     matatu_data = database.get_matatu(
         player_id
@@ -569,10 +559,6 @@ def main():
         matatu.comfort_level = matatu_data[13]
 
         print("Matatu progress loaded.")
-
-    # -------------------------
-    # ROUTES
-    # -------------------------
 
     routes = [
         Route(
@@ -615,10 +601,6 @@ def main():
             required_level=3
         )
     ]
-
-    # -------------------------
-    # START GAME
-    # -------------------------
 
     main_menu(
         player,
