@@ -4,6 +4,7 @@ from models.route import Route
 from models.passenger import Passenger
 from models.trip import Trip
 from models.garage import Garage
+from models.matatu_shop import MatatuShop
 from database.database import Database
 
 
@@ -222,6 +223,27 @@ def garage_menu(player, matatu):
             print("Invalid choice.")
 
 
+def matatu_shop_menu(player):
+    while True:
+        print("\nMATATU SHOP")
+        print("=" * 40)
+
+        MatatuShop.display_shop(player)
+
+        print("\n0. Leave Shop")
+
+        choice = input("\nChoose an option: ")
+
+        if choice == "0":
+            break
+
+        print(
+            "\nBuying matatus will be available soon."
+        )
+
+        input("\nPress Enter to continue...")
+
+
 def display_trip_history(database, player_id):
     trips = database.get_trip_history(
         player_id
@@ -402,9 +424,10 @@ def main_menu(
         print("2. My Matatu")
         print("3. Maintenance")
         print("4. Garage")
-        print("5. Trip History")
-        print("6. Player Stats")
-        print("7. Exit")
+        print("5. Matatu Shop")
+        print("6. Trip History")
+        print("7. Player Stats")
+        print("8. Exit")
 
         choice = input("\nChoose an option: ")
 
@@ -456,6 +479,11 @@ def main_menu(
             print("\nGame saved.")
 
         elif choice == "5":
+            matatu_shop_menu(
+                player
+            )
+
+        elif choice == "6":
             display_trip_history(
                 database,
                 player_id
@@ -463,14 +491,14 @@ def main_menu(
 
             input("\nPress Enter to continue...")
 
-        elif choice == "6":
+        elif choice == "7":
             display_player_stats(
                 player
             )
 
             input("\nPress Enter to continue...")
 
-        elif choice == "7":
+        elif choice == "8":
             save_game(
                 database,
                 player_id,
@@ -487,7 +515,7 @@ def main_menu(
         else:
             print(
                 "Invalid choice. "
-                "Please select 1-7."
+                "Please select 1-8."
             )
 
 
