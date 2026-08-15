@@ -6,9 +6,7 @@ class Database:
         self.database_name = database_name
 
     def connect(self):
-        return sqlite3.connect(
-            self.database_name
-        )
+        return sqlite3.connect(self.database_name)
 
     def create_tables(self):
         connection = self.connect()
@@ -65,6 +63,10 @@ class Database:
 
         connection.commit()
         connection.close()
+
+    # -------------------------
+    # PLAYER METHODS
+    # -------------------------
 
     def create_player(self, player):
         connection = self.connect()
@@ -139,6 +141,10 @@ class Database:
 
         connection.commit()
         connection.close()
+
+    # -------------------------
+    # MATATU METHODS
+    # -------------------------
 
     def create_matatu(self, player_id, matatu):
         connection = self.connect()
@@ -259,9 +265,74 @@ class Database:
         connection.commit()
         connection.close()
 
+    # -------------------------
+    # TRIP METHODS
+    # -------------------------
+
+    def save_trip(self, player_id, trip):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        event_name = None
+
+        if trip.event:
+            event_name = trip.event["name"]
+
+        cursor.execute("""
+            INSERT INTO trips (
+                player_id,
+                route_name,
+                passengers,
+                earnings,
+                fuel_used,
+                event_name,
+                experience_earned,
+                reputation_earned
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            player_id,
+            trip.route.name,
+            len(trip.passengers),
+            trip.earnings,
+            trip.fuel_used,
+            event_name,
+            trip.experience_earned,
+            trip.reputation_earned
+        ))
+
+        connection.commit()
+        connection.close()
+
+    def get_trip_history(self, player_id):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                route_name,
+                passengers,
+                earnings,
+                fuel_used,
+                event_name,
+                experience_earned,
+                reputation_earned
+            FROM trips
+            WHERE player_id = ?
+            ORDER BY id DESC
+        """, (player_id,))
+
+        trips = cursor.fetchall()
+
+        connection.close()
+
+        return trips
+
 
 if __name__ == "__main__":
     database = Database()
+
     database.create_tables()
 
     print("Database initialized successfully.")

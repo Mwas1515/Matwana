@@ -34,11 +34,14 @@ def maintenance_menu(player, matatu):
     while True:
         print("\nMAINTENANCE")
         print("=" * 40)
+
         print(f"Money: KSh {player.money}")
+
         print(
             f"Fuel: {matatu.fuel}L / "
             f"{matatu.fuel_capacity}L"
         )
+
         print(f"Condition: {matatu.condition}%")
 
         print("\n1. Refuel")
@@ -156,6 +159,7 @@ def garage_menu(player, matatu):
     while True:
         print("\nGARAGE")
         print("=" * 40)
+
         print(f"Money: KSh {player.money}")
 
         print("\nAvailable upgrades:")
@@ -188,6 +192,41 @@ def garage_menu(player, matatu):
 
         else:
             print("Invalid choice.")
+
+
+def display_trip_history(database, player_id):
+    trips = database.get_trip_history(
+        player_id
+    )
+
+    print("\nTRIP HISTORY")
+    print("=" * 50)
+
+    if not trips:
+        print("No trips completed yet.")
+        return
+
+    for trip in trips:
+        trip_id = trip[0]
+        route_name = trip[1]
+        passengers = trip[2]
+        earnings = trip[3]
+        fuel_used = trip[4]
+        event_name = trip[5]
+        experience = trip[6]
+        reputation = trip[7]
+
+        print(f"\nTrip #{trip_id}")
+        print(f"Route: {route_name}")
+        print(f"Passengers: {passengers}")
+        print(f"Earnings: KSh {earnings}")
+        print(f"Fuel used: {fuel_used}L")
+
+        if event_name:
+            print(f"Event: {event_name}")
+
+        print(f"XP earned: {experience}")
+        print(f"Reputation: +{reputation}")
 
 
 def main():
@@ -326,6 +365,7 @@ def main():
     )
 
     print("\nSELECTED ROUTE")
+
     selected_route.display_info()
 
     passengers = Passenger.generate_passengers(
@@ -359,10 +399,18 @@ def main():
 
     if trip.complete_trip():
         trip.display_summary()
+
+        database.save_trip(
+            player_id,
+            trip
+        )
+
+        print("\nTrip saved to database.")
+
     else:
         print("\nTrip could not be completed.")
 
-    # Save player and matatu progress
+    # Save current player and matatu
     database.save_player(
         player_id,
         player
@@ -375,15 +423,22 @@ def main():
 
     print("\nPLAYER STATUS")
     print("=" * 40)
+
     print(f"Money: KSh {player.money}")
     print(f"Level: {player.level}")
     print(f"Experience: {player.experience}")
     print(f"Reputation: {player.reputation}")
 
     print("\nMATATU STATUS")
+
     matatu.display_info()
 
-    print("\nPlayer and matatu progress saved.")
+    display_trip_history(
+        database,
+        player_id
+    )
+
+    print("\nPlayer, matatu, and trip progress saved.")
 
 
 if __name__ == "__main__":
