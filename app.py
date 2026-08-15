@@ -125,6 +125,10 @@ def maintenance_menu(player, matatu):
             "\nChoose an option: "
         )
 
+        # -------------------------
+        # REFUEL
+        # -------------------------
+
         if choice == "1":
             try:
                 litres = int(
@@ -175,6 +179,15 @@ def maintenance_menu(player, matatu):
                     "You don't have enough money."
                 )
 
+                print(
+                    f"Required: KSh {cost}"
+                )
+
+                print(
+                    f"Available: "
+                    f"KSh {player.money}"
+                )
+
                 continue
 
             fuel_added = matatu.refuel(
@@ -187,6 +200,10 @@ def maintenance_menu(player, matatu):
                 f"Added {fuel_added:g}L of fuel "
                 f"for KSh {cost}."
             )
+
+        # -------------------------
+        # REPAIR
+        # -------------------------
 
         elif choice == "2":
             try:
@@ -237,6 +254,15 @@ def maintenance_menu(player, matatu):
                     "You don't have enough money."
                 )
 
+                print(
+                    f"Required: KSh {cost}"
+                )
+
+                print(
+                    f"Available: "
+                    f"KSh {player.money}"
+                )
+
                 continue
 
             repaired = matatu.repair(
@@ -249,6 +275,10 @@ def maintenance_menu(player, matatu):
                 f"Repaired {repaired:g}% "
                 f"for KSh {cost}."
             )
+
+        # -------------------------
+        # CONTINUE
+        # -------------------------
 
         elif choice == "3":
             break
@@ -272,8 +302,7 @@ def garage_menu(
     Upgrade the active matatu.
 
     Every successful upgrade is immediately
-    saved to the database so that upgrades
-    remain attached to this specific matatu.
+    saved to the database.
     """
 
     while True:
@@ -318,25 +347,17 @@ def garage_menu(
             )
 
             if upgraded:
+                # Save matatu upgrades.
                 database.save_matatu(
                     matatu_id,
                     matatu
                 )
 
+                # Save player's money.
                 database.save_player(
                     player_id,
                     player
                 )
-
-                print(
-                "\nUpgrade saved."
-                )
-
-                # Save player's money immediately.
-                database.save_player(
-                    player_id=None,
-                    player=player
-                ) if False else None
 
                 print(
                     "\nUpgrade saved."
@@ -814,6 +835,7 @@ def display_trip_history(
 
         print(f"\nTrip #{trip_id}")
         print(f"Route: {route_name}")
+
         print(
             f"Passengers: {passengers}"
         )
@@ -1067,6 +1089,10 @@ def main_menu(
             "\nChoose an option: "
         )
 
+        # -------------------------
+        # START TRIP
+        # -------------------------
+
         if choice == "1":
             start_trip(
                 player,
@@ -1077,10 +1103,18 @@ def main_menu(
                 matatu_id
             )
 
+        # -------------------------
+        # MY MATATU
+        # -------------------------
+
         elif choice == "2":
             display_matatu_status(
                 matatu
             )
+
+        # -------------------------
+        # MAINTENANCE
+        # -------------------------
 
         elif choice == "3":
             maintenance_menu(
@@ -1098,11 +1132,16 @@ def main_menu(
 
             print("\nGame saved.")
 
+        # -------------------------
+        # GARAGE
+        # -------------------------
+
         elif choice == "4":
             garage_menu(
                 player,
                 matatu,
                 database,
+                player_id,
                 matatu_id
             )
 
@@ -1116,12 +1155,20 @@ def main_menu(
 
             print("\nGame saved.")
 
+        # -------------------------
+        # MATATU SHOP
+        # -------------------------
+
         elif choice == "5":
             matatu_shop_menu(
                 player,
                 database,
                 player_id
             )
+
+        # -------------------------
+        # MY MATATUS
+        # -------------------------
 
         elif choice == "6":
             new_matatu_id = my_matatus_menu(
@@ -1153,6 +1200,10 @@ def main_menu(
                         f"{matatu.name}"
                     )
 
+        # -------------------------
+        # TRIP HISTORY
+        # -------------------------
+
         elif choice == "7":
             display_trip_history(
                 database,
@@ -1163,6 +1214,10 @@ def main_menu(
                 "\nPress Enter to continue..."
             )
 
+        # -------------------------
+        # PLAYER STATS
+        # -------------------------
+
         elif choice == "8":
             display_player_stats(
                 player
@@ -1171,6 +1226,10 @@ def main_menu(
             input(
                 "\nPress Enter to continue..."
             )
+
+        # -------------------------
+        # EXIT
+        # -------------------------
 
         elif choice == "9":
             save_game(
@@ -1205,9 +1264,9 @@ def main():
 
     database.create_tables()
 
-    # -------------------------
+    # ==========================================
     # PLAYER
-    # -------------------------
+    # ==========================================
 
     player = Player("Goon")
 
@@ -1237,9 +1296,9 @@ def main():
             "\nPlayer progress loaded."
         )
 
-    # -------------------------
+    # ==========================================
     # ACTIVE MATATU
-    # -------------------------
+    # ==========================================
 
     matatu_data = database.get_matatu(
         player_id
@@ -1274,9 +1333,9 @@ def main():
             "Matatu progress loaded."
         )
 
-    # -------------------------
+    # ==========================================
     # ROUTES
-    # -------------------------
+    # ==========================================
 
     routes = [
         Route(
@@ -1320,9 +1379,9 @@ def main():
         )
     ]
 
-    # -------------------------
+    # ==========================================
     # START GAME
-    # -------------------------
+    # ==========================================
 
     main_menu(
         player,
@@ -1333,6 +1392,10 @@ def main():
         matatu_id
     )
 
+
+# ==========================================
+# PROGRAM ENTRY POINT
+# ==========================================
 
 if __name__ == "__main__":
     main()
