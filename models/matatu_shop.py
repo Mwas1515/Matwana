@@ -1,3 +1,6 @@
+from models.matatu import Matatu
+
+
 class MatatuShop:
     MATATUS = {
         "shadow": {
@@ -93,3 +96,24 @@ class MatatuShop:
         key, matatu = matatus[index - 1]
 
         return key, matatu
+
+    @classmethod
+    def create_matatu(cls, matatu_key):
+        shop_matatu = cls.get_matatu(matatu_key)
+
+        if shop_matatu is None:
+            return None
+
+        matatu = Matatu(
+            name=shop_matatu["name"],
+            model=shop_matatu["model"],
+            capacity=shop_matatu["capacity"]
+        )
+
+        matatu.fuel_capacity = shop_matatu["fuel_capacity"]
+        matatu.fuel = shop_matatu["fuel_capacity"]
+
+        matatu.speed = shop_matatu["speed"]
+        matatu.comfort = shop_matatu["comfort"]
+
+        return matatu
