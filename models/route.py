@@ -1,4 +1,3 @@
-```python
 class Route:
     # ==========================================
     # ROUTE REWARDS
@@ -210,4 +209,4 @@ class Route:
             f"{self.difficulty} | "
             f"KSh {self.fare}"
         )
-```
+
