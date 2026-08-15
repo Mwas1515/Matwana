@@ -5,6 +5,44 @@ from models.passenger import Passenger
 from models.trip import Trip
 
 
+def choose_route(routes):
+    print("\n AVAILABLE ROUTES")
+    print("=" * 40)
+
+    for index, route in enumerate(routes, start=1):
+        print(
+            f"{index}. {route.name} "
+            f"- KSh {route.fare} "
+            f"- {route.distance} km"
+        )
+
+    while True:
+        choice = input("\nChoose a route: ")
+
+        if choice.isdigit():
+            choice = int(choice)
+
+            if 1 <= choice <= len(routes):
+                return routes[choice - 1]
+
+        print(" Invalid choice. Please select a valid route.")
+
+
+def create_passengers(route, count=4):
+    passengers = []
+
+    for i in range(1, count + 1):
+        passengers.append(
+            Passenger(
+                name=f"Passenger {i}",
+                destination=route.destination,
+                fare=route.fare
+            )
+        )
+
+    return passengers
+
+
 def main():
     # Create player
     player = Player("Goon")
@@ -51,17 +89,6 @@ def main():
         )
     ]
 
-    # Select route
-    selected_route = routes[0]
-
-    # Create passengers
-    passengers = [
-        Passenger("Kevin", "Rongai", 100),
-        Passenger("Brian", "Rongai", 100),
-        Passenger("Mary", "Rongai", 100),
-        Passenger("Ann", "Rongai", 100)
-    ]
-
     # Welcome screen
     print("=" * 40)
     print("WELCOME TO MATWANA")
@@ -75,15 +102,26 @@ def main():
     # Matatu information
     matatu.display_info()
 
-    # Selected route
+    # Choose route
+    selected_route = choose_route(routes)
+
     print("\n SELECTED ROUTE")
     selected_route.display_info()
 
-    # Passenger information
+    # Create passengers based on selected route
+    passengers = create_passengers(selected_route)
+
     print("\n PASSENGERS")
 
     for passenger in passengers:
         passenger.display_info()
+
+    # Check capacity
+    if not matatu.can_carry(len(passengers)):
+        print("\n Too many passengers!")
+        return
+
+    print(f"\n {len(passengers)} passengers boarded.")
 
     # Create trip
     trip = Trip(
@@ -101,14 +139,14 @@ def main():
     else:
         print("\n Trip could not be completed.")
 
-    # Show updated player information
+    # Updated player information
     print("\n UPDATED PLAYER STATUS")
-    print(f" Money: KSh {player.money}")
-    print(f" Level: {player.level}")
-    print(f" Experience: {player.experience}")
+    print(f"Money: KSh {player.money}")
+    print(f"Level: {player.level}")
+    print(f"Experience: {player.experience}")
     print(f" Reputation: {player.reputation}")
 
-    # Show updated matatu
+    # Updated matatu information
     matatu.display_info()
 
 
