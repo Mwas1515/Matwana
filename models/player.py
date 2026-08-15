@@ -2,6 +2,7 @@ class Player:
     def __init__(self, name):
         self.name = name
         self.money = 5000
+
         self.level = 1
         self.experience = 0
         self.reputation = 0
@@ -16,56 +17,34 @@ class Player:
         self.money -= amount
         return True
 
-    def get_experience_required(self):
-        return self.level * 100
-
     def add_experience(self, amount):
+        if amount <= 0:
+            return []
+
         self.experience += amount
 
-        while (
-            self.experience
-            >= self.get_experience_required()
-        ):
-            self.level_up()
+        level_ups = []
 
-    def level_up(self):
-        required_xp = self.get_experience_required()
+        while self.experience >= self.experience_required():
+            required_xp = self.experience_required()
 
-        self.experience -= required_xp
+            self.experience -= required_xp
+            self.level += 1
 
-        self.level += 1
+            level_ups.append(self.level)
 
-        level_reward = self.level * 500
+        for level in level_ups:
+            print("\n" + "=" * 40)
+            print("LEVEL UP!")
+            print("=" * 40)
+            print(
+                f"You reached Level {level}."
+            )
 
-        reputation_reward = 5
+        return level_ups
 
-        self.earn_money(level_reward)
-
-        self.add_reputation(
-            reputation_reward
-        )
-
-        print("\n" + "=" * 40)
-        print("LEVEL UP!")
-        print("=" * 40)
-
-        print(
-            f"Congratulations, {self.name}!"
-        )
-
-        print(
-            f"You reached Level {self.level}."
-        )
-
-        print(
-            f"Money reward: "
-            f"KSh {level_reward}"
-        )
-
-        print(
-            f"Reputation reward: "
-            f"+{reputation_reward}"
-        )
+    def experience_required(self):
+        return self.level * 100
 
     def add_reputation(self, amount):
         self.reputation += amount
@@ -73,30 +52,25 @@ class Player:
         if self.reputation < 0:
             self.reputation = 0
 
-    def get_level_progress(self):
-        required_xp = self.get_experience_required()
-
-        return (
-            self.experience,
-            required_xp
-        )
-
     def display_stats(self):
-        current_xp, required_xp = (
-            self.get_level_progress()
-        )
-
         print("\nPLAYER STATS")
         print("=" * 40)
 
         print(f"Driver: {self.name}")
         print(f"Level: {self.level}")
+
         print(
             f"Experience: "
-            f"{current_xp}/{required_xp}"
+            f"{self.experience}/"
+            f"{self.experience_required()}"
         )
-        print(f"Money: KSh {self.money}")
+
         print(
             f"Reputation: "
             f"{self.reputation}"
+        )
+
+        print(
+            f"Money: "
+            f"KSh {self.money}"
         )
