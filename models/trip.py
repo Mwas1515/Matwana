@@ -9,7 +9,22 @@ class Trip:
         self.route = route
         self.passengers = passengers
 
+        # -------------------------
+        # FINANCIAL DATA
+        # -------------------------
+
         self.earnings = 0
+        self.base_earnings = 0
+        self.difficulty_bonus = 0
+        self.driving_bonus = 0
+        self.event_money = 0
+        self.fuel_cost = 0
+        self.net_profit = 0
+
+        # -------------------------
+        # TRIP DATA
+        # -------------------------
+
         self.fuel_used = 0
         self.experience_earned = 0
         self.reputation_earned = 0
@@ -18,6 +33,10 @@ class Trip:
         self.driving_style = None
 
         self.completed = False
+
+    # ==========================================
+    # DIFFICULTY
+    # ==========================================
 
     def get_difficulty_multiplier(self):
         difficulty = self.route.difficulty.lower()
@@ -33,31 +52,59 @@ class Trip:
 
         return 1.0
 
+    # ==========================================
+    # EARNINGS
+    # ==========================================
+
     def calculate_earnings(self):
-        base_earnings = sum(
+        # Base earnings from passengers.
+        self.base_earnings = sum(
             passenger.fare
             for passenger in self.passengers
         )
 
+        # Apply route difficulty multiplier.
         difficulty_multiplier = (
             self.get_difficulty_multiplier()
         )
 
-        earnings = (
-            base_earnings
+        difficulty_earnings = (
+            self.base_earnings
             * difficulty_multiplier
         )
 
+        self.difficulty_bonus = round(
+            difficulty_earnings
+            - self.base_earnings
+        )
+
+        earnings = difficulty_earnings
+
+        # Apply driving style multiplier.
         if self.driving_style:
-            earnings *= (
+            driving_multiplier = (
                 self.driving_style[
                     "earnings_multiplier"
                 ]
             )
 
-        self.earnings = round(earnings)
+            before_driving = earnings
+
+            earnings *= driving_multiplier
+
+            self.driving_bonus = round(
+                earnings - before_driving
+            )
+
+        self.earnings = round(
+            earnings
+        )
 
         return self.earnings
+
+    # ==========================================
+    # FUEL
+    # ==========================================
 
     def calculate_fuel_used(self):
         difficulty = self.route.difficulty.lower()
@@ -81,6 +128,7 @@ class Trip:
             )
         )
 
+        # Apply driving style fuel multiplier.
         if self.driving_style:
             driving_multiplier = (
                 self.driving_style[
@@ -89,9 +137,11 @@ class Trip:
             )
 
             base_fuel = round(
-                base_fuel * driving_multiplier
+                base_fuel
+                * driving_multiplier
             )
 
+        # Apply matatu engine efficiency.
         engine_efficiency = (
             self.matatu.get_fuel_efficiency()
         )
@@ -99,17 +149,23 @@ class Trip:
         self.fuel_used = max(
             1,
             round(
-                base_fuel * engine_efficiency
+                base_fuel
+                * engine_efficiency
             )
         )
 
         return self.fuel_used
+
+    # ==========================================
+    # DAMAGE
+    # ==========================================
 
     def calculate_damage(self):
         if self.driving_style:
             base_damage = (
                 self.driving_style["damage"]
             )
+
         else:
             difficulty = (
                 self.route.difficulty.lower()
@@ -141,8 +197,14 @@ class Trip:
             final_damage
         )
 
+    # ==========================================
+    # REWARDS
+    # ==========================================
+
     def calculate_rewards(self):
-        difficulty = self.route.difficulty.lower()
+        difficulty = (
+            self.route.difficulty.lower()
+        )
 
         if difficulty == "easy":
             self.experience_earned = 30
@@ -160,11 +222,19 @@ class Trip:
             self.experience_earned = 30
             self.reputation_earned = 2
 
+    # ==========================================
+    # DRIVING REPUTATION
+    # ==========================================
+
     def calculate_driving_reputation(self):
         if not self.driving_style:
             return 0
 
         return self.driving_style["reputation"]
+
+    # ==========================================
+    # DRIVING STYLE
+    # ==========================================
 
     def choose_driving_style(self):
         self.driving_style = (
@@ -176,6 +246,10 @@ class Trip:
             f"{self.driving_style['name']}"
         )
 
+    # ==========================================
+    # RANDOM EVENT
+    # ==========================================
+
     def apply_event(self):
         if not self.event:
             return
@@ -184,19 +258,34 @@ class Trip:
             self.event
         )
 
-        event_fuel = self.event["fuel_cost"]
+        # -------------------------
+        # EVENT FUEL
+        # -------------------------
+
+        event_fuel = (
+            self.event["fuel_cost"]
+        )
 
         engine_efficiency = (
             self.matatu.get_fuel_efficiency()
         )
 
         reduced_event_fuel = round(
-            event_fuel * engine_efficiency
+            event_fuel
+            * engine_efficiency
         )
 
-        self.fuel_used += reduced_event_fuel
+        self.fuel_used += (
+            reduced_event_fuel
+        )
 
-        event_damage = self.event["damage"]
+        # -------------------------
+        # EVENT DAMAGE
+        # -------------------------
+
+        event_damage = (
+            self.event["damage"]
+        )
 
         damage_reduction = (
             self.matatu.get_damage_reduction()
@@ -211,9 +300,21 @@ class Trip:
             reduced_event_damage
         )
 
-        self.player.earn_money(
+        # -------------------------
+        # EVENT MONEY
+        # -------------------------
+
+        self.event_money = (
             self.event["money"]
         )
+
+        self.player.earn_money(
+            self.event_money
+        )
+
+    # ==========================================
+    # PASSENGER PATIENCE
+    # ==========================================
 
     def handle_passenger_patience(self):
         if not self.event:
@@ -264,10 +365,15 @@ class Trip:
             remaining_passengers
         )
 
+    # ==========================================
+    # COMPLETE TRIP
+    # ==========================================
+
     def complete_trip(self):
         if self.completed:
             return False
 
+        # Check passenger capacity.
         if not self.matatu.can_carry(
             len(self.passengers)
         ):
@@ -278,6 +384,7 @@ class Trip:
 
             return False
 
+        # Check matatu condition.
         if self.matatu.condition <= 0:
             print(
                 "\nYour matatu is too damaged "
@@ -286,28 +393,47 @@ class Trip:
 
             return False
 
+        # -------------------------
+        # DRIVING STYLE
+        # -------------------------
+
         self.choose_driving_style()
 
+        # -------------------------
+        # BASE FUEL
+        # -------------------------
+
         self.calculate_fuel_used()
+
+        # -------------------------
+        # RANDOM EVENT
+        # -------------------------
 
         self.event = (
             RandomEvent.generate_event()
         )
 
-        event_fuel = self.event["fuel_cost"]
+        event_fuel = (
+            self.event["fuel_cost"]
+        )
 
         engine_efficiency = (
             self.matatu.get_fuel_efficiency()
         )
 
         reduced_event_fuel = round(
-            event_fuel * engine_efficiency
+            event_fuel
+            * engine_efficiency
         )
 
         total_fuel = (
             self.fuel_used
             + reduced_event_fuel
         )
+
+        # -------------------------
+        # FUEL CHECK
+        # -------------------------
 
         if self.matatu.fuel < total_fuel:
             print(
@@ -327,11 +453,27 @@ class Trip:
 
             return False
 
+        # -------------------------
+        # APPLY EVENT
+        # -------------------------
+
         self.apply_event()
+
+        # -------------------------
+        # PASSENGER PATIENCE
+        # -------------------------
 
         self.handle_passenger_patience()
 
+        # -------------------------
+        # EARNINGS
+        # -------------------------
+
         self.calculate_earnings()
+
+        # -------------------------
+        # FUEL CONSUMPTION
+        # -------------------------
 
         self.matatu.use_fuel(
             self.fuel_used
@@ -345,6 +487,21 @@ class Trip:
             event_fuel_used
         )
 
+        # -------------------------
+        # FUEL COST
+        # -------------------------
+
+        self.fuel_cost = (
+            self.matatu.calculate_fuel_cost(
+                self.fuel_used
+                + event_fuel_used
+            )
+        )
+
+        # -------------------------
+        # DAMAGE
+        # -------------------------
+
         trip_damage = (
             self.calculate_damage()
         )
@@ -353,9 +510,17 @@ class Trip:
             trip_damage
         )
 
+        # -------------------------
+        # PLAYER MONEY
+        # -------------------------
+
         self.player.earn_money(
             self.earnings
         )
+
+        # -------------------------
+        # XP & REPUTATION
+        # -------------------------
 
         self.calculate_rewards()
 
@@ -375,9 +540,31 @@ class Trip:
             self.reputation_earned
         )
 
+        # -------------------------
+        # NET PROFIT
+        # -------------------------
+
+        total_income = (
+            self.earnings
+            + self.event_money
+        )
+
+        self.net_profit = (
+            total_income
+            - self.fuel_cost
+        )
+
+        # -------------------------
+        # COMPLETE
+        # -------------------------
+
         self.completed = True
 
         return True
+
+    # ==========================================
+    # TRIP SUMMARY
+    # ==========================================
 
     def display_summary(self):
         print("\n" + "=" * 40)
@@ -385,7 +572,8 @@ class Trip:
         print("=" * 40)
 
         print(
-            f"Route: {self.route.name}"
+            f"Route: "
+            f"{self.route.name}"
         )
 
         print(
@@ -404,15 +592,65 @@ class Trip:
             f"{len(self.passengers)}"
         )
 
+        # -------------------------
+        # FINANCIAL SUMMARY
+        # -------------------------
+
+        print("\n" + "-" * 40)
+        print("TRIP FINANCIAL SUMMARY")
+        print("-" * 40)
+
         print(
-            f"Passenger earnings: "
+            f"Base passenger fares: "
+            f"KSh {self.base_earnings}"
+        )
+
+        print(
+            f"Difficulty bonus: "
+            f"+KSh {self.difficulty_bonus}"
+        )
+
+        print(
+            f"Driving style bonus: "
+            f"+KSh {self.driving_bonus}"
+        )
+
+        if self.event_money > 0:
+            print(
+                f"Random event bonus: "
+                f"+KSh {self.event_money}"
+            )
+
+        elif self.event_money < 0:
+            print(
+                f"Random event penalty: "
+                f"-KSh {abs(self.event_money)}"
+            )
+
+        print("-" * 40)
+
+        print(
+            f"Trip earnings: "
             f"KSh {self.earnings}"
         )
 
         print(
-            f"Fuel used: "
-            f"{self.fuel_used}L"
+            f"Fuel cost: "
+            f"KSh {self.fuel_cost}"
         )
+
+        print(
+            f"Net profit: "
+            f"KSh {self.net_profit}"
+        )
+
+        # -------------------------
+        # PROGRESSION
+        # -------------------------
+
+        print("\n" + "-" * 40)
+        print("PROGRESSION")
+        print("-" * 40)
 
         print(
             f"XP earned: "
@@ -424,6 +662,14 @@ class Trip:
             f"+{self.reputation_earned}"
         )
 
+        # -------------------------
+        # MATATU STATUS
+        # -------------------------
+
+        print("\n" + "-" * 40)
+        print("MATATU STATUS")
+        print("-" * 40)
+
         print(
             f"Matatu condition: "
             f"{self.matatu.condition}%"
@@ -434,8 +680,16 @@ class Trip:
             f"{self.matatu.fuel}L"
         )
 
+        # -------------------------
+        # EVENT
+        # -------------------------
+
         if self.event:
+            print("\n" + "-" * 40)
+
             print(
                 f"Event: "
                 f"{self.event['name']}"
             )
+
+        print("\n" + "=" * 40)
