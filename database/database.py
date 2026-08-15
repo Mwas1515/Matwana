@@ -6,17 +6,25 @@ class Database:
     def __init__(self, database_name="data/matwana.db"):
         self.database_name = database_name
 
-        os.makedirs(
-            os.path.dirname(self.database_name),
-            exist_ok=True
+        database_directory = os.path.dirname(
+            self.database_name
         )
+
+        if database_directory:
+            os.makedirs(
+                database_directory,
+                exist_ok=True
+            )
+
+    # ==========================================
+    # CONNECTION
+    # ==========================================
 
     def connect(self):
         connection = sqlite3.connect(
             self.database_name
         )
 
-        # Enforce foreign keys.
         connection.execute(
             "PRAGMA foreign_keys = ON"
         )
@@ -32,7 +40,7 @@ class Database:
         cursor = connection.cursor()
 
         # -------------------------
-        # PLAYERS TABLE
+        # PLAYERS
         # -------------------------
 
         cursor.execute("""
@@ -47,7 +55,7 @@ class Database:
         """)
 
         # -------------------------
-        # MATATUS TABLE
+        # MATATUS
         # -------------------------
 
         cursor.execute("""
@@ -62,12 +70,13 @@ class Database:
                 condition REAL NOT NULL,
                 speed INTEGER NOT NULL,
                 comfort INTEGER NOT NULL,
-                engine_level INTEGER NOT NULL,
-                suspension_level INTEGER NOT NULL,
-                seat_level INTEGER NOT NULL,
-                fuel_tank_level INTEGER NOT NULL,
-                comfort_level INTEGER NOT NULL,
+                engine_level INTEGER NOT NULL DEFAULT 1,
+                suspension_level INTEGER NOT NULL DEFAULT 1,
+                seat_level INTEGER NOT NULL DEFAULT 1,
+                fuel_tank_level INTEGER NOT NULL DEFAULT 1,
+                comfort_level INTEGER NOT NULL DEFAULT 1,
                 active INTEGER NOT NULL DEFAULT 0,
+
                 FOREIGN KEY (player_id)
                     REFERENCES players(id)
                     ON DELETE CASCADE
@@ -75,7 +84,7 @@ class Database:
         """)
 
         # -------------------------
-        # TRIPS TABLE
+        # TRIPS
         # -------------------------
 
         cursor.execute("""
@@ -89,6 +98,7 @@ class Database:
                 event_name TEXT,
                 experience_earned INTEGER NOT NULL,
                 reputation_earned INTEGER NOT NULL,
+
                 FOREIGN KEY (player_id)
                     REFERENCES players(id)
                     ON DELETE CASCADE
@@ -109,7 +119,7 @@ class Database:
         cursor = connection.cursor()
 
         # -------------------------
-        # CHECK MATATUS TABLE
+        # MATATU COLUMNS
         # -------------------------
 
         cursor.execute("""
@@ -123,18 +133,44 @@ class Database:
             for column in columns
         ]
 
-        # Add active column to old databases.
-        if "active" not in column_names:
-            cursor.execute("""
-                ALTER TABLE matatus
-                ADD COLUMN active INTEGER
-                NOT NULL DEFAULT 0
-            """)
-
-            print(
-                "Database migration: "
-                "added 'active' column."
+        # Add upgrade columns to older databases.
+        upgrade_columns = {
+            "engine_level": (
+                "INTEGER NOT NULL DEFAULT 1"
+            ),
+            "suspension_level": (
+                "INTEGER NOT NULL DEFAULT 1"
+            ),
+            "seat_level": (
+                "INTEGER NOT NULL DEFAULT 1"
+            ),
+            "fuel_tank_level": (
+                "INTEGER NOT NULL DEFAULT 1"
+            ),
+            "comfort_level": (
+                "INTEGER NOT NULL DEFAULT 1"
+            ),
+            "active": (
+                "INTEGER NOT NULL DEFAULT 0"
             )
+        }
+
+        for column_name, column_definition in (
+            upgrade_columns.items()
+        ):
+            if column_name not in column_names:
+                cursor.execute(
+                    f"""
+                    ALTER TABLE matatus
+                    ADD COLUMN {column_name}
+                    {column_definition}
+                    """
+                )
+
+                print(
+                    f"Database migration: "
+                    f"added '{column_name}' column."
+                )
 
         # -------------------------
         # FIX ACTIVE MATATUS
@@ -179,7 +215,7 @@ class Database:
                         WHERE id = ?
                     """, (first_matatu[0],))
 
-            # More than one active matatu.
+            # Multiple active matatus.
             elif len(active_matatus) > 1:
                 keep_active = active_matatus[0][0]
 
@@ -300,8 +336,6 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # If this vehicle becomes active,
-        # deactivate the player's other vehicles.
         if active:
             cursor.execute("""
                 UPDATE matatus
@@ -465,6 +499,30 @@ class Database:
 
         return matatus
 
+    def matatu_exists(
+        self,
+        player_id,
+        matatu_id
+    ):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT 1
+            FROM matatus
+            WHERE player_id = ?
+            AND id = ?
+        """, (
+            player_id,
+            matatu_id
+        ))
+
+        exists = cursor.fetchone() is not None
+
+        connection.close()
+
+        return exists
+
     def set_active_matatu(
         self,
         player_id,
@@ -490,7 +548,7 @@ class Database:
             connection.close()
             return False
 
-        # Deactivate all player's vehicles.
+        # Deactivate all vehicles.
         cursor.execute("""
             UPDATE matatus
             SET active = 0
@@ -556,7 +614,12 @@ class Database:
         ))
 
         connection.commit()
+
+        updated = cursor.rowcount > 0
+
         connection.close()
+
+        return updated
 
     # ==========================================
     # TRIP METHODS

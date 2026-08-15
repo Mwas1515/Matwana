@@ -9,6 +9,18 @@ class Garage:
         "comfort": 2500
     }
 
+    UPGRADE_NAMES = {
+        "engine": "Engine",
+        "suspension": "Suspension",
+        "seats": "Seats",
+        "fuel_tank": "Fuel Tank",
+        "comfort": "Comfort"
+    }
+
+    # ==========================================
+    # UPGRADE LEVEL
+    # ==========================================
+
     @classmethod
     def get_upgrade_level(cls, matatu, upgrade):
         level_attributes = {
@@ -25,6 +37,10 @@ class Garage:
             return None
 
         return getattr(matatu, attribute)
+
+    # ==========================================
+    # UPGRADE COST
+    # ==========================================
 
     @classmethod
     def get_upgrade_cost(cls, matatu, upgrade):
@@ -52,6 +68,10 @@ class Garage:
             base_cost * cost_multiplier
         )
 
+    # ==========================================
+    # CAN UPGRADE
+    # ==========================================
+
     @classmethod
     def can_upgrade(cls, matatu, upgrade):
         level = cls.get_upgrade_level(
@@ -64,6 +84,10 @@ class Garage:
 
         return level < cls.MAX_LEVEL
 
+    # ==========================================
+    # UPGRADE MATATU
+    # ==========================================
+
     @classmethod
     def upgrade_matatu(
         cls,
@@ -72,7 +96,7 @@ class Garage:
         upgrade
     ):
         if upgrade not in cls.BASE_COSTS:
-            print("Invalid upgrade.")
+            print("\nInvalid upgrade.")
             return False
 
         current_level = cls.get_upgrade_level(
@@ -80,9 +104,13 @@ class Garage:
             upgrade
         )
 
+        if current_level is None:
+            print("\nInvalid upgrade.")
+            return False
+
         if current_level >= cls.MAX_LEVEL:
             print(
-                f"{upgrade.replace('_', ' ').title()} "
+                f"\n{cls.UPGRADE_NAMES[upgrade]} "
                 f"is already at maximum level."
             )
 
@@ -94,12 +122,16 @@ class Garage:
         )
 
         if cost is None:
-            print("Unable to calculate upgrade cost.")
+            print(
+                "\nUnable to calculate "
+                "upgrade cost."
+            )
+
             return False
 
         if player.money < cost:
             print(
-                f"You don't have enough money."
+                "\nYou don't have enough money."
             )
 
             print(
@@ -112,6 +144,7 @@ class Garage:
 
             return False
 
+        # Apply upgrade
         if upgrade == "engine":
             matatu.upgrade_engine()
 
@@ -134,8 +167,12 @@ class Garage:
             upgrade
         )
 
+        display_name = cls.UPGRADE_NAMES[
+            upgrade
+        ]
+
         print(
-            f"\n{upgrade.replace('_', ' ').title()} "
+            f"\n{display_name} "
             f"upgraded successfully!"
         )
 
@@ -149,6 +186,10 @@ class Garage:
         )
 
         return True
+
+    # ==========================================
+    # DISPLAY UPGRADES
+    # ==========================================
 
     @classmethod
     def display_upgrades(cls, matatu):
@@ -184,7 +225,9 @@ class Garage:
             )
 
             if cost is None:
-                print("Status: MAX LEVEL")
+                print(
+                    "Status: MAX LEVEL"
+                )
 
             else:
                 print(

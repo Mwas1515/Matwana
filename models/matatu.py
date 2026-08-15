@@ -97,11 +97,12 @@ class Matatu:
     def get_fuel_efficiency(self):
         """
         Higher engine levels reduce fuel consumption.
+
         Level 1 = 100%
         Level 2 = 95%
         Level 3 = 90%
-        ...
-        Minimum efficiency = 70%
+        Level 4 = 85%
+        Level 5 = 80%
         """
 
         reduction = (
@@ -116,7 +117,12 @@ class Matatu:
     def get_damage_reduction(self):
         """
         Higher suspension levels reduce damage.
-        Maximum damage reduction = 50%.
+
+        Level 1 = 0%
+        Level 2 = 10%
+        Level 3 = 20%
+        Level 4 = 30%
+        Level 5 = 40%
         """
 
         reduction = (
@@ -131,7 +137,7 @@ class Matatu:
     def get_patience_reduction(self):
         """
         Higher comfort levels reduce passenger
-        patience loss during events.
+        patience loss during bad events.
         """
 
         reduction = (
@@ -173,11 +179,7 @@ class Matatu:
 
     def display_info(self):
         print(f"\n{self.name}")
-        print("=" * 40)
-
-        print(
-            f"Model: {self.model}"
-        )
+        print(f"Model: {self.model}")
 
         print(
             f"Capacity: "
@@ -185,8 +187,7 @@ class Matatu:
         )
 
         print(
-            f"Fuel: "
-            f"{self.fuel:g}L / "
+            f"Fuel: {self.fuel:g}L / "
             f"{self.fuel_capacity:g}L"
         )
 
@@ -195,37 +196,49 @@ class Matatu:
             f"{self.condition:g}%"
         )
 
-        print(
-            f"Speed: {self.speed}"
-        )
-
-        print(
-            f"Comfort: {self.comfort}"
-        )
+        print(f"Speed: {self.speed}")
+        print(f"Comfort: {self.comfort}")
 
         print("\nUPGRADES")
 
         print(
             f"Engine: "
-            f"Level {self.engine_level}"
+            f"Level {self.engine_level}/5"
         )
 
         print(
             f"Suspension: "
-            f"Level {self.suspension_level}"
+            f"Level {self.suspension_level}/5"
         )
 
         print(
             f"Seats: "
-            f"Level {self.seat_level}"
+            f"Level {self.seat_level}/5"
         )
 
         print(
             f"Fuel Tank: "
-            f"Level {self.fuel_tank_level}"
+            f"Level {self.fuel_tank_level}/5"
         )
 
         print(
             f"Comfort: "
-            f"Level {self.comfort_level}"
+            f"Level {self.comfort_level}/5"
+        )
+
+        print("\nUPGRADE EFFECTS")
+
+        print(
+            f"Fuel Efficiency: "
+            f"{self.get_fuel_efficiency() * 100:.0f}%"
+        )
+
+        print(
+            f"Damage Reduction: "
+            f"{self.get_damage_reduction() * 100:.0f}%"
+        )
+
+        print(
+            f"Passenger Patience Reduction: "
+            f"{self.get_patience_reduction() * 100:.0f}%"
         )
