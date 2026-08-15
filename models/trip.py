@@ -1,4 +1,5 @@
 from models.event import RandomEvent
+from models.driving import DrivingStyle
 
 
 class Trip:
@@ -14,6 +15,7 @@ class Trip:
         self.reputation_earned = 0
 
         self.event = None
+        self.driving_style = None
 
         self.completed = False
 
@@ -37,10 +39,24 @@ class Trip:
             for passenger in self.passengers
         )
 
-        multiplier = self.get_difficulty_multiplier()
+        difficulty_multiplier = (
+            self.get_difficulty_multiplier()
+        )
+
+        earnings = (
+            base_earnings
+            * difficulty_multiplier
+        )
+
+        if self.driving_style:
+            earnings *= (
+                self.driving_style[
+                    "earnings_multiplier"
+                ]
+            )
 
         self.earnings = round(
-            base_earnings * multiplier
+            earnings
         )
 
         return self.earnings
@@ -60,31 +76,48 @@ class Trip:
         else:
             fuel_rate = 0.25
 
-        self.fuel_used = max(
+        base_fuel = max(
             1,
             round(
                 self.route.distance * fuel_rate
             )
         )
 
+        if self.driving_style:
+            multiplier = (
+                self.driving_style[
+                    "fuel_multiplier"
+                ]
+            )
+
+            self.fuel_used = max(
+                1,
+                round(
+                    base_fuel * multiplier
+                )
+            )
+
+        else:
+            self.fuel_used = base_fuel
+
         return self.fuel_used
 
     def calculate_damage(self):
+        if self.driving_style:
+            return self.driving_style["damage"]
+
         difficulty = self.route.difficulty.lower()
 
         if difficulty == "easy":
-            damage = 1
+            return 1
 
         elif difficulty == "medium":
-            damage = 2
+            return 2
 
         elif difficulty == "hard":
-            damage = 4
+            return 4
 
-        else:
-            damage = 2
-
-        return damage
+        return 2
 
     def calculate_rewards(self):
         difficulty = self.route.difficulty.lower()
@@ -105,6 +138,22 @@ class Trip:
             self.experience_earned = 30
             self.reputation_earned = 2
 
+    def calculate_driving_reputation(self):
+        if not self.driving_style:
+            return 0
+
+        return self.driving_style["reputation"]
+
+    def choose_driving_style(self):
+        self.driving_style = (
+            DrivingStyle.choose_style()
+        )
+
+        print(
+            f"\nSelected: "
+            f"{self.driving_style['name']}"
+        )
+
     def apply_event(self):
         if not self.event:
             return
@@ -113,7 +162,9 @@ class Trip:
             self.event
         )
 
-        self.fuel_used += self.event["fuel_cost"]
+        self.fuel_used += (
+            self.event["fuel_cost"]
+        )
 
         self.matatu.damage(
             self.event["damage"]
@@ -138,14 +189,17 @@ class Trip:
         remaining_passengers = []
 
         for passenger in self.passengers:
-            still_riding = passenger.handle_trip_delay(
-                delay
+            still_riding = (
+                passenger.handle_trip_delay(
+                    delay
+                )
             )
 
             if still_riding:
                 remaining_passengers.append(
                     passenger
                 )
+
             else:
                 print(
                     f"\n{passenger.name} "
@@ -153,7 +207,9 @@ class Trip:
                     f"of the delay."
                 )
 
-        self.passengers = remaining_passengers
+        self.passengers = (
+            remaining_passengers
+        )
 
     def complete_trip(self):
         if self.completed:
@@ -177,9 +233,13 @@ class Trip:
 
             return False
 
+        self.choose_driving_style()
+
         self.calculate_fuel_used()
 
-        self.event = RandomEvent.generate_event()
+        self.event = (
+            RandomEvent.generate_event()
+        )
 
         total_fuel = (
             self.fuel_used
@@ -193,7 +253,8 @@ class Trip:
             )
 
             print(
-                f"Fuel required: {total_fuel}L"
+                f"Fuel required: "
+                f"{total_fuel}L"
             )
 
             print(
@@ -213,7 +274,9 @@ class Trip:
             self.fuel_used
         )
 
-        trip_damage = self.calculate_damage()
+        trip_damage = (
+            self.calculate_damage()
+        )
 
         self.matatu.damage(
             trip_damage
@@ -224,6 +287,14 @@ class Trip:
         )
 
         self.calculate_rewards()
+
+        driving_reputation = (
+            self.calculate_driving_reputation()
+        )
+
+        self.reputation_earned += (
+            driving_reputation
+        )
 
         self.player.add_experience(
             self.experience_earned
@@ -242,8 +313,21 @@ class Trip:
         print("TRIP COMPLETED")
         print("=" * 40)
 
-        print(f"Route: {self.route.name}")
-        print(f"Difficulty: {self.route.difficulty}")
+        print(
+            f"Route: {self.route.name}"
+        )
+
+        print(
+            f"Difficulty: "
+            f"{self.route.difficulty}"
+        )
+
+        if self.driving_style:
+            print(
+                f"Driving Style: "
+                f"{self.driving_style['name']}"
+            )
+
         print(
             f"Passengers remaining: "
             f"{len(self.passengers)}"
