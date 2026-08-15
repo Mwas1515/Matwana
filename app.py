@@ -7,27 +7,55 @@ from models.garage import Garage
 from database.database import Database
 
 
-def choose_route(routes):
+def choose_route(routes, player):
     print("\nAVAILABLE ROUTES")
     print("=" * 40)
 
     for index, route in enumerate(routes, start=1):
-        print(
-            f"{index}. {route.name} "
-            f"- KSh {route.fare} "
-            f"- {route.distance} km"
-        )
+        print(f"\n{index}. {route.name}")
+        print(f"   Difficulty: {route.difficulty}")
+        print(f"   Distance: {route.distance} km")
+        print(f"   Fare: KSh {route.fare}")
+
+        if route.is_unlocked(player.level):
+            print("   Status: UNLOCKED")
+        else:
+            print(
+                f"   Status: LOCKED "
+                f"(Requires Level {route.required_level})"
+            )
 
     while True:
-        choice = input("\nChoose a route: ")
+        choice = input(
+            "\nChoose a route or 0 to cancel: "
+        )
+
+        if choice == "0":
+            return None
 
         if choice.isdigit():
             choice = int(choice)
 
             if 1 <= choice <= len(routes):
-                return routes[choice - 1]
+                selected_route = routes[choice - 1]
 
-        print("Invalid choice. Please select a valid route.")
+                if not selected_route.is_unlocked(
+                    player.level
+                ):
+                    print("\nRoute locked.")
+                    print(
+                        f"You need Level "
+                        f"{selected_route.required_level} "
+                        f"to unlock this route."
+                    )
+                    continue
+
+                return selected_route
+
+        print(
+            "Invalid choice. "
+            "Please select an available route."
+        )
 
 
 def maintenance_menu(player, matatu):
@@ -61,7 +89,9 @@ def maintenance_menu(player, matatu):
                 continue
 
             if litres <= 0:
-                print("Amount must be greater than zero.")
+                print(
+                    "Amount must be greater than zero."
+                )
                 continue
 
             fuel_space = (
@@ -108,7 +138,9 @@ def maintenance_menu(player, matatu):
                 continue
 
             if amount <= 0:
-                print("Amount must be greater than zero.")
+                print(
+                    "Amount must be greater than zero."
+                )
                 continue
 
             available_condition = (
@@ -228,14 +260,7 @@ def display_trip_history(database, player_id):
 
 
 def display_player_stats(player):
-    print("\nPLAYER STATS")
-    print("=" * 40)
-
-    print(f"Driver: {player.name}")
-    print(f"Money: KSh {player.money}")
-    print(f"Level: {player.level}")
-    print(f"Experience: {player.experience}")
-    print(f"Reputation: {player.reputation}")
+    player.display_stats()
 
 
 def display_matatu_status(matatu):
@@ -247,7 +272,13 @@ def display_matatu_status(matatu):
     input("\nPress Enter to continue...")
 
 
-def save_game(database, player_id, matatu_id, player, matatu):
+def save_game(
+    database,
+    player_id,
+    matatu_id,
+    player,
+    matatu
+):
     database.save_player(
         player_id,
         player
@@ -283,8 +314,14 @@ def start_trip(
         return
 
     selected_route = choose_route(
-        routes
+        routes,
+        player
     )
+
+    if selected_route is None:
+        print("\nTrip cancelled.")
+        input("\nPress Enter to continue...")
+        return
 
     print("\nSELECTED ROUTE")
 
@@ -360,6 +397,7 @@ def main_menu(
         print(f"Driver: {player.name}")
         print(f"Money: KSh {player.money}")
         print(f"Level: {player.level}")
+        print(f"Experience: {player.experience}")
         print(f"Reputation: {player.reputation}")
 
         print("\n1. Start Trip")
@@ -449,7 +487,10 @@ def main_menu(
             break
 
         else:
-            print("Invalid choice. Please select 1-7.")
+            print(
+                "Invalid choice. "
+                "Please select 1-7."
+            )
 
 
 def main():
@@ -535,21 +576,13 @@ def main():
 
     routes = [
         Route(
-            name="CBD → Rongai",
-            start_location="Nairobi CBD",
-            destination="Rongai",
-            distance=18,
-            fare=100,
-            difficulty="Medium"
-        ),
-
-        Route(
             name="CBD → Eastleigh",
             start_location="Nairobi CBD",
             destination="Eastleigh",
             distance=8,
             fare=80,
-            difficulty="Easy"
+            difficulty="Easy",
+            required_level=1
         ),
 
         Route(
@@ -558,7 +591,18 @@ def main():
             destination="Kasarani",
             distance=12,
             fare=70,
-            difficulty="Easy"
+            difficulty="Easy",
+            required_level=1
+        ),
+
+        Route(
+            name="CBD → Rongai",
+            start_location="Nairobi CBD",
+            destination="Rongai",
+            distance=18,
+            fare=100,
+            difficulty="Medium",
+            required_level=2
         ),
 
         Route(
@@ -567,7 +611,8 @@ def main():
             destination="Githurai",
             distance=18,
             fare=100,
-            difficulty="Hard"
+            difficulty="Hard",
+            required_level=3
         )
     ]
 
