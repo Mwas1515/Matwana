@@ -12,9 +12,20 @@ class Database:
         )
 
     def connect(self):
-        return sqlite3.connect(
+        connection = sqlite3.connect(
             self.database_name
         )
+
+        # Enforce foreign keys.
+        connection.execute(
+            "PRAGMA foreign_keys = ON"
+        )
+
+        return connection
+
+    # ==========================================
+    # DATABASE SETUP
+    # ==========================================
 
     def create_tables(self):
         connection = self.connect()
@@ -59,6 +70,7 @@ class Database:
                 active INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (player_id)
                     REFERENCES players(id)
+                    ON DELETE CASCADE
             )
         """)
 
@@ -79,21 +91,25 @@ class Database:
                 reputation_earned INTEGER NOT NULL,
                 FOREIGN KEY (player_id)
                     REFERENCES players(id)
+                    ON DELETE CASCADE
             )
         """)
 
         connection.commit()
         connection.close()
 
-        # Run migrations after tables exist.
         self.migrate_database()
+
+    # ==========================================
+    # DATABASE MIGRATION
+    # ==========================================
 
     def migrate_database(self):
         connection = self.connect()
         cursor = connection.cursor()
 
         # -------------------------
-        # CHECK MATATUS COLUMNS
+        # CHECK MATATUS TABLE
         # -------------------------
 
         cursor.execute("""
@@ -121,13 +137,12 @@ class Database:
             )
 
         # -------------------------
-        # ENSURE ACTIVE MATATU
+        # FIX ACTIVE MATATUS
         # -------------------------
 
         cursor.execute("""
-            SELECT player_id
+            SELECT DISTINCT player_id
             FROM matatus
-            GROUP BY player_id
         """)
 
         player_ids = cursor.fetchall()
@@ -140,12 +155,13 @@ class Database:
                 FROM matatus
                 WHERE player_id = ?
                 AND active = 1
-                LIMIT 1
+                ORDER BY id ASC
             """, (player_id,))
 
-            active_matatu = cursor.fetchone()
+            active_matatus = cursor.fetchall()
 
-            if active_matatu is None:
+            # No active matatu.
+            if not active_matatus:
                 cursor.execute("""
                     SELECT id
                     FROM matatus
@@ -163,12 +179,39 @@ class Database:
                         WHERE id = ?
                     """, (first_matatu[0],))
 
+            # More than one active matatu.
+            elif len(active_matatus) > 1:
+                keep_active = active_matatus[0][0]
+
+                cursor.execute("""
+                    UPDATE matatus
+                    SET active = 0
+                    WHERE player_id = ?
+                """, (player_id,))
+
+                cursor.execute("""
+                    UPDATE matatus
+                    SET active = 1
+                    WHERE id = ?
+                """, (keep_active,))
+
+        # -------------------------
+        # UNIQUE ACTIVE MATATU
+        # -------------------------
+
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            one_active_matatu_per_player
+            ON matatus(player_id)
+            WHERE active = 1
+        """)
+
         connection.commit()
         connection.close()
 
-    # -------------------------
+    # ==========================================
     # PLAYER METHODS
-    # -------------------------
+    # ==========================================
 
     def create_player(self, player):
         connection = self.connect()
@@ -244,9 +287,9 @@ class Database:
         connection.commit()
         connection.close()
 
-    # -------------------------
+    # ==========================================
     # MATATU METHODS
-    # -------------------------
+    # ==========================================
 
     def create_matatu(
         self,
@@ -257,8 +300,8 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # If this matatu should be active,
-        # deactivate the player's other matatus.
+        # If this vehicle becomes active,
+        # deactivate the player's other vehicles.
         if active:
             cursor.execute("""
                 UPDATE matatus
@@ -430,8 +473,7 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # Make sure the matatu belongs
-        # to this player.
+        # Verify ownership.
         cursor.execute("""
             SELECT id
             FROM matatus
@@ -448,14 +490,14 @@ class Database:
             connection.close()
             return False
 
-        # Deactivate all matatus.
+        # Deactivate all player's vehicles.
         cursor.execute("""
             UPDATE matatus
             SET active = 0
             WHERE player_id = ?
         """, (player_id,))
 
-        # Activate selected matatu.
+        # Activate selected vehicle.
         cursor.execute("""
             UPDATE matatus
             SET active = 1
@@ -516,9 +558,9 @@ class Database:
         connection.commit()
         connection.close()
 
-    # -------------------------
+    # ==========================================
     # TRIP METHODS
-    # -------------------------
+    # ==========================================
 
     def save_trip(
         self,
@@ -587,6 +629,10 @@ class Database:
 
         return trips
 
+
+# ==========================================
+# TEST DATABASE
+# ==========================================
 
 if __name__ == "__main__":
     database = Database()
