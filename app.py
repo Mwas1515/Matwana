@@ -2,6 +2,7 @@ from models.player import Player
 from models.matatu import Matatu
 from models.route import Route
 from models.passenger import Passenger
+from models.trip import Trip
 
 
 def main():
@@ -50,6 +51,9 @@ def main():
         )
     ]
 
+    # Select route
+    selected_route = routes[0]
+
     # Create passengers
     passengers = [
         Passenger("Kevin", "Rongai", 100),
@@ -71,11 +75,9 @@ def main():
     # Matatu information
     matatu.display_info()
 
-    # Available routes
-    print("\n AVAILABLE ROUTES")
-
-    for route in routes:
-        route.display_info()
+    # Selected route
+    print("\n SELECTED ROUTE")
+    selected_route.display_info()
 
     # Passenger information
     print("\n PASSENGERS")
@@ -83,16 +85,31 @@ def main():
     for passenger in passengers:
         passenger.display_info()
 
-    # Check capacity
-    if matatu.can_carry(len(passengers)):
-        print(f"\n {len(passengers)} passengers boarded.")
+    # Create trip
+    trip = Trip(
+        player=player,
+        matatu=matatu,
+        route=selected_route,
+        passengers=passengers
+    )
+
+    # Start trip
+    print("\n Starting trip...")
+
+    if trip.complete_trip():
+        trip.display_summary()
     else:
-        print("\n Too many passengers!")
+        print("\n Trip could not be completed.")
 
-    # Calculate expected earnings
-    total_fare = sum(passenger.fare for passenger in passengers)
+    # Show updated player information
+    print("\n UPDATED PLAYER STATUS")
+    print(f" Money: KSh {player.money}")
+    print(f" Level: {player.level}")
+    print(f" Experience: {player.experience}")
+    print(f" Reputation: {player.reputation}")
 
-    print(f"\n Expected earnings: KSh {total_fare}")
+    # Show updated matatu
+    matatu.display_info()
 
 
 if __name__ == "__main__":
