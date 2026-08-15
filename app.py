@@ -223,28 +223,6 @@ def garage_menu(player, matatu):
             print("Invalid choice.")
 
 
-def matatu_shop_menu(player):
-    while True:
-        print("\nMATATU SHOP")
-        print("=" * 40)
-
-        MatatuShop.display_shop(player)
-
-        print("\n0. Leave Shop")
-
-        choice = input("\nChoose an option: ")
-
-        if choice == "0":
-            break
-
-        print(
-            "\nBuying matatus will be available "
-            "in the next update."
-        )
-
-        input("\nPress Enter to continue...")
-
-
 def display_trip_history(database, player_id):
     trips = database.get_trip_history(
         player_id
@@ -417,7 +395,9 @@ def switch_matatu(
         selected_id = selected_matatu[0]
 
         if selected_id == current_matatu_id:
-            print("\nThat matatu is already active.")
+            print(
+                "\nThat matatu is already active."
+            )
             return current_matatu_id
 
         success = database.set_active_matatu(
@@ -492,6 +472,228 @@ def matatu_garage_menu(
             print("Invalid choice.")
 
     return current_matatu_id
+
+
+def matatu_shop_menu(
+    player,
+    database,
+    player_id
+):
+    while True:
+        owned_matatus = database.get_all_matatus(
+            player_id
+        )
+
+        print("\nMATATU SHOP")
+        print("=" * 50)
+
+        print(f"Money: KSh {player.money}")
+
+        owned_names = {
+            matatu[1].lower()
+            for matatu in owned_matatus
+        }
+
+        shop_items = list(
+            MatatuShop.MATATUS.items()
+        )
+
+        for index, (key, shop_matatu) in enumerate(
+            shop_items,
+            start=1
+        ):
+            print("\n" + "-" * 50)
+
+            print(
+                f"{index}. "
+                f"{shop_matatu['name']} "
+                f"({shop_matatu['model']})"
+            )
+
+            print(
+                f"   Price: "
+                f"KSh {shop_matatu['price']:,}"
+            )
+
+            print(
+                f"   Capacity: "
+                f"{shop_matatu['capacity']} passengers"
+            )
+
+            print(
+                f"   Fuel Capacity: "
+                f"{shop_matatu['fuel_capacity']}L"
+            )
+
+            print(
+                f"   Speed: "
+                f"{shop_matatu['speed']}"
+            )
+
+            print(
+                f"   Comfort: "
+                f"{shop_matatu['comfort']}"
+            )
+
+            if shop_matatu["name"].lower() in owned_names:
+                print("   Status: OWNED")
+
+            elif player.money >= shop_matatu["price"]:
+                print("   Status: AVAILABLE")
+
+            else:
+                print("   Status: TOO EXPENSIVE")
+
+        print("\n0. Leave Shop")
+
+        choice = input(
+            "\nChoose a matatu to buy: "
+        )
+
+        if choice == "0":
+            break
+
+        if not choice.isdigit():
+            print("\nPlease enter a valid number.")
+            continue
+
+        choice = int(choice)
+
+        if choice < 1 or choice > len(shop_items):
+            print("\nInvalid choice.")
+            continue
+
+        key, shop_matatu = shop_items[
+            choice - 1
+        ]
+
+        matatu_name = shop_matatu["name"]
+
+        if matatu_name.lower() in owned_names:
+            print(
+                f"\nYou already own "
+                f"{matatu_name}."
+            )
+
+            input(
+                "\nPress Enter to continue..."
+            )
+
+            continue
+
+        price = shop_matatu["price"]
+
+        if player.money < price:
+            print("\nYou don't have enough money.")
+
+            print(
+                f"You need KSh "
+                f"{price - player.money:,} more."
+            )
+
+            input(
+                "\nPress Enter to continue..."
+            )
+
+            continue
+
+        print("\nPURCHASE CONFIRMATION")
+        print("=" * 40)
+
+        print(
+            f"Matatu: "
+            f"{shop_matatu['name']}"
+        )
+
+        print(
+            f"Model: "
+            f"{shop_matatu['model']}"
+        )
+
+        print(
+            f"Price: "
+            f"KSh {price:,}"
+        )
+
+        print(
+            f"Your money: "
+            f"KSh {player.money:,}"
+        )
+
+        confirm = input(
+            "\nBuy this matatu? (y/n): "
+        ).lower()
+
+        if confirm != "y":
+            print("\nPurchase cancelled.")
+            continue
+
+        matatu = Matatu(
+            name=shop_matatu["name"],
+            model=shop_matatu["model"],
+            capacity=shop_matatu["capacity"]
+        )
+
+        matatu.fuel_capacity = (
+            shop_matatu["fuel_capacity"]
+        )
+
+        matatu.fuel = (
+            shop_matatu["fuel_capacity"]
+        )
+
+        matatu.speed = (
+            shop_matatu["speed"]
+        )
+
+        matatu.comfort = (
+            shop_matatu["comfort"]
+        )
+
+        if not player.spend_money(price):
+            print(
+                "\nPurchase failed."
+            )
+            continue
+
+        database.create_matatu(
+            player_id,
+            matatu,
+            active=True
+        )
+
+        database.save_player(
+            player_id,
+            player
+        )
+
+        print("\n" + "=" * 40)
+        print("PURCHASE SUCCESSFUL!")
+        print("=" * 40)
+
+        print(
+            f"You bought the "
+            f"{matatu.name}."
+        )
+
+        print(
+            f"Price paid: "
+            f"KSh {price:,}"
+        )
+
+        print(
+            f"Remaining money: "
+            f"KSh {player.money:,}"
+        )
+
+        print(
+            f"\n{matatu.name} is now "
+            f"your active matatu."
+        )
+
+        input(
+            "\nPress Enter to continue..."
+        )
 
 
 def save_game(
@@ -623,7 +825,10 @@ def main_menu(
         print(f"Reputation: {player.reputation}")
 
         print("\nACTIVE MATATU")
-        print(f"{matatu.name} - {matatu.model}")
+        print(
+            f"{matatu.name} - "
+            f"{matatu.model}"
+        )
 
         print("\n1. Start Trip")
         print("2. My Matatu")
@@ -687,9 +892,34 @@ def main_menu(
             print("\nGame saved.")
 
         elif choice == "5":
+            old_matatu_id = matatu_id
+
             matatu_shop_menu(
-                player
+                player,
+                database,
+                player_id
             )
+
+            active_matatu_data = database.get_matatu(
+                player_id
+            )
+
+            if active_matatu_data:
+                matatu_id = active_matatu_data[0]
+
+                matatu = create_matatu_from_data(
+                    active_matatu_data
+                )
+
+                if matatu_id != old_matatu_id:
+                    print(
+                        f"\nActive matatu is now "
+                        f"{matatu.name}."
+                    )
+
+                    input(
+                        "\nPress Enter to continue..."
+                    )
 
         elif choice == "6":
             new_matatu_id = matatu_garage_menu(
@@ -699,9 +929,11 @@ def main_menu(
             )
 
             if new_matatu_id != matatu_id:
-                new_matatu_data = database.get_matatu_by_id(
-                    player_id,
-                    new_matatu_id
+                new_matatu_data = (
+                    database.get_matatu_by_id(
+                        player_id,
+                        new_matatu_id
+                    )
                 )
 
                 if new_matatu_data:
@@ -712,8 +944,12 @@ def main_menu(
                     )
 
                     print(
-                        f"\nActive matatu switched to "
-                        f"{matatu.name}."
+                        f"\nActive matatu switched "
+                        f"to {matatu.name}."
+                    )
+
+                    input(
+                        "\nPress Enter to continue..."
                     )
 
         elif choice == "7":
@@ -722,14 +958,18 @@ def main_menu(
                 player_id
             )
 
-            input("\nPress Enter to continue...")
+            input(
+                "\nPress Enter to continue..."
+            )
 
         elif choice == "8":
             display_player_stats(
                 player
             )
 
-            input("\nPress Enter to continue...")
+            input(
+                "\nPress Enter to continue..."
+            )
 
         elif choice == "9":
             save_game(
