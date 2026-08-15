@@ -4,8 +4,8 @@ class Matatu:
         self.model = model
         self.capacity = capacity
 
-        self.fuel = 100
-        self.fuel_capacity = 100
+        self.fuel = 60
+        self.fuel_capacity = 60
 
         self.condition = 100
 
@@ -15,14 +15,14 @@ class Matatu:
         self.fuel_price = 200
         self.repair_price = 500
 
-    def refuel(self, amount):
-        if amount <= 0:
+    def refuel(self, litres):
+        if litres <= 0:
             return 0
 
         available_space = self.fuel_capacity - self.fuel
 
         fuel_added = min(
-            amount,
+            litres,
             available_space
         )
 
@@ -30,12 +30,12 @@ class Matatu:
 
         return fuel_added
 
-    def calculate_fuel_cost(self, amount):
-        return amount * self.fuel_price
+    def calculate_fuel_cost(self, litres):
+        return litres * self.fuel_price
 
-    def use_fuel(self, amount):
+    def use_fuel(self, litres):
         self.fuel = max(
-            self.fuel - amount,
+            self.fuel - litres,
             0
         )
 
@@ -73,7 +73,10 @@ class Matatu:
         print(f"\n{self.name}")
         print(f"Model: {self.model}")
         print(f"Capacity: {self.capacity} passengers")
-        print(f"Fuel: {self.fuel}%")
+        print(
+            f"Fuel: {self.fuel}L / "
+            f"{self.fuel_capacity}L"
+        )
         print(f"Condition: {self.condition}%")
         print(f"Speed: {self.speed}")
         print(f"Comfort: {self.comfort}")

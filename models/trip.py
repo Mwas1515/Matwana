@@ -27,8 +27,8 @@ class Trip:
 
     def calculate_fuel_used(self):
         self.fuel_used = max(
-            5,
-            self.route.distance // 2
+            1,
+            round(self.route.distance * 0.25)
         )
 
         return self.fuel_used
@@ -69,7 +69,10 @@ class Trip:
         )
 
         if self.matatu.fuel < total_fuel:
-            print("\nNot enough fuel to complete this trip.")
+            print(
+                "\nNot enough fuel "
+                "to complete this trip."
+            )
             return False
 
         self.apply_event()
@@ -110,7 +113,7 @@ class Trip:
         print(f"Route: {self.route.name}")
         print(f"Passengers: {len(self.passengers)}")
         print(f"Passenger earnings: KSh {self.earnings}")
-        print(f"Fuel used: {self.fuel_used}%")
+        print(f"Fuel used: {self.fuel_used}L")
         print(f"XP earned: {self.experience_earned}")
         print(f"Reputation: +{self.reputation_earned}")
 

@@ -30,12 +30,16 @@ def choose_route(routes):
             "Please select a valid route."
         )
 
+
 def maintenance_menu(player, matatu):
     while True:
         print("\nMAINTENANCE")
         print("=" * 40)
         print(f"Money: KSh {player.money}")
-        print(f"Fuel: {matatu.fuel}%")
+        print(
+            f"Fuel: {matatu.fuel}L / "
+            f"{matatu.fuel_capacity}L"
+        )
         print(f"Condition: {matatu.condition}%")
 
         print("\n1. Refuel")
@@ -46,40 +50,53 @@ def maintenance_menu(player, matatu):
 
         if choice == "1":
             try:
-                amount = int(
-                    input("How much fuel do you want to buy? ")
+                litres = int(
+                    input(
+                        "How many litres of fuel "
+                        "do you want to buy? "
+                    )
                 )
             except ValueError:
                 print("Please enter a valid number.")
                 continue
 
-            if amount <= 0:
+            if litres <= 0:
                 print("Amount must be greater than zero.")
                 continue
 
-            cost = matatu.calculate_fuel_cost(amount)
+            cost = matatu.calculate_fuel_cost(litres)
 
             if cost > player.money:
                 print("You don't have enough money.")
                 continue
 
-            fuel_added = matatu.refuel(amount)
+            fuel_added = matatu.refuel(litres)
 
             if fuel_added == 0:
                 print("Fuel tank is already full.")
                 continue
 
-            player.spend_money(cost)
+            actual_cost = matatu.calculate_fuel_cost(
+                fuel_added
+            )
+
+            if actual_cost > player.money:
+                print("You don't have enough money.")
+                continue
+
+            player.spend_money(actual_cost)
 
             print(
-                f"Added {fuel_added}% fuel "
-                f"for KSh {cost}."
+                f"Added {fuel_added}L of fuel "
+                f"for KSh {actual_cost}."
             )
 
         elif choice == "2":
             try:
                 amount = int(
-                    input("How much should you repair? ")
+                    input(
+                        "How much should you repair? "
+                    )
                 )
             except ValueError:
                 print("Please enter a valid number.")
@@ -89,18 +106,27 @@ def maintenance_menu(player, matatu):
                 print("Amount must be greater than zero.")
                 continue
 
-            cost = matatu.calculate_repair_cost(amount)
+            repaired = min(
+                amount,
+                100 - matatu.condition
+            )
+
+            if repaired == 0:
+                print(
+                    "Matatu is already in "
+                    "perfect condition."
+                )
+                continue
+
+            cost = matatu.calculate_repair_cost(
+                repaired
+            )
 
             if cost > player.money:
                 print("You don't have enough money.")
                 continue
 
-            repaired = matatu.repair(amount)
-
-            if repaired == 0:
-                print("Matatu is already in perfect condition.")
-                continue
-
+            matatu.repair(repaired)
             player.spend_money(cost)
 
             print(
@@ -113,6 +139,7 @@ def maintenance_menu(player, matatu):
 
         else:
             print("Invalid choice.")
+
 
 def main():
     player = Player("Goon")
@@ -171,6 +198,7 @@ def main():
     print(f"Reputation: {player.reputation}")
 
     matatu.display_info()
+
     maintenance_menu(player, matatu)
 
     selected_route = choose_route(routes)
