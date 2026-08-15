@@ -6,7 +6,7 @@ from models.trip import Trip
 
 
 def choose_route(routes):
-    print("\n AVAILABLE ROUTES")
+    print("\nAVAILABLE ROUTES")
     print("=" * 40)
 
     for index, route in enumerate(routes, start=1):
@@ -25,35 +25,20 @@ def choose_route(routes):
             if 1 <= choice <= len(routes):
                 return routes[choice - 1]
 
-        print(" Invalid choice. Please select a valid route.")
-
-
-def create_passengers(route, count=4):
-    passengers = []
-
-    for i in range(1, count + 1):
-        passengers.append(
-            Passenger(
-                name=f"Passenger {i}",
-                destination=route.destination,
-                fare=route.fare
-            )
+        print(
+            "Invalid choice. "
+            "Please select a valid route."
         )
-
-    return passengers
 
 
 def main():
-    # Create player
     player = Player("Goon")
 
-    # Create matatu
     matatu = Matatu(
         name="Beast",
         model="Toyota Hiace"
     )
 
-    # Create routes
     routes = [
         Route(
             name="CBD → Rongai",
@@ -63,6 +48,7 @@ def main():
             fare=100,
             difficulty="Medium"
         ),
+
         Route(
             name="CBD → Eastleigh",
             start_location="Nairobi CBD",
@@ -71,6 +57,7 @@ def main():
             fare=80,
             difficulty="Easy"
         ),
+
         Route(
             name="CBD → Kasarani",
             start_location="Nairobi CBD",
@@ -79,6 +66,7 @@ def main():
             fare=70,
             difficulty="Easy"
         ),
+
         Route(
             name="CBD → Githurai",
             start_location="Nairobi CBD",
@@ -89,7 +77,6 @@ def main():
         )
     ]
 
-    # Welcome screen
     print("=" * 40)
     print("WELCOME TO MATWANA")
     print("=" * 40)
@@ -97,33 +84,34 @@ def main():
     print(f"Driver: {player.name}")
     print(f"Money: KSh {player.money}")
     print(f"Level: {player.level}")
+    print(f"Experience: {player.experience}")
     print(f"Reputation: {player.reputation}")
 
-    # Matatu information
     matatu.display_info()
 
-    # Choose route
     selected_route = choose_route(routes)
 
-    print("\n SELECTED ROUTE")
+    print("\nSELECTED ROUTE")
     selected_route.display_info()
 
-    # Create passengers based on selected route
-    passengers = create_passengers(selected_route)
+    passengers = Passenger.generate_passengers(
+        selected_route,
+        matatu.capacity
+    )
 
-    print("\n PASSENGERS")
+    print("\nPASSENGERS")
 
     for passenger in passengers:
         passenger.display_info()
 
-    # Check capacity
     if not matatu.can_carry(len(passengers)):
-        print("\n Too many passengers!")
+        print("\nToo many passengers!")
         return
 
-    print(f"\n {len(passengers)} passengers boarded.")
+    print(
+        f"\n{len(passengers)} passengers boarded."
+    )
 
-    # Create trip
     trip = Trip(
         player=player,
         matatu=matatu,
@@ -131,22 +119,23 @@ def main():
         passengers=passengers
     )
 
-    # Start trip
-    print("\n Starting trip...")
+    print("\nStarting trip...")
 
     if trip.complete_trip():
         trip.display_summary()
     else:
-        print("\n Trip could not be completed.")
+        print("\nTrip could not be completed.")
 
-    # Updated player information
-    print("\n UPDATED PLAYER STATUS")
+    print("\nUPDATED PLAYER STATUS")
+    print("=" * 40)
+
     print(f"Money: KSh {player.money}")
     print(f"Level: {player.level}")
     print(f"Experience: {player.experience}")
-    print(f" Reputation: {player.reputation}")
+    print(f"Reputation: {player.reputation}")
 
-    # Updated matatu information
+    print("\nUPDATED MATATU STATUS")
+
     matatu.display_info()
 
 
