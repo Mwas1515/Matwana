@@ -1,5 +1,3 @@
-import random
-
 from models.event import RandomEvent
 
 
@@ -64,7 +62,9 @@ class Trip:
 
         self.fuel_used = max(
             1,
-            round(self.route.distance * fuel_rate)
+            round(
+                self.route.distance * fuel_rate
+            )
         )
 
         return self.fuel_used
@@ -123,6 +123,38 @@ class Trip:
             self.event["money"]
         )
 
+    def handle_passenger_patience(self):
+        if not self.event:
+            return
+
+        delay = self.event.get(
+            "patience_loss",
+            0
+        )
+
+        if delay <= 0:
+            return
+
+        remaining_passengers = []
+
+        for passenger in self.passengers:
+            still_riding = passenger.handle_trip_delay(
+                delay
+            )
+
+            if still_riding:
+                remaining_passengers.append(
+                    passenger
+                )
+            else:
+                print(
+                    f"\n{passenger.name} "
+                    f"left the matatu because "
+                    f"of the delay."
+                )
+
+        self.passengers = remaining_passengers
+
     def complete_trip(self):
         if self.completed:
             return False
@@ -173,6 +205,8 @@ class Trip:
 
         self.apply_event()
 
+        self.handle_passenger_patience()
+
         self.calculate_earnings()
 
         self.matatu.use_fuel(
@@ -210,7 +244,10 @@ class Trip:
 
         print(f"Route: {self.route.name}")
         print(f"Difficulty: {self.route.difficulty}")
-        print(f"Passengers: {len(self.passengers)}")
+        print(
+            f"Passengers remaining: "
+            f"{len(self.passengers)}"
+        )
 
         print(
             f"Passenger earnings: "

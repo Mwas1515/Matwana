@@ -77,6 +77,14 @@ class Passenger:
     def is_patient(self):
         return self.patience > 0
 
+    def handle_trip_delay(self, delay):
+        self.lose_patience(delay)
+
+        if self.patience <= 0:
+            return False
+
+        return True
+
     @classmethod
     def generate_passengers(cls, route, capacity):
         passenger_count = random.randint(
