@@ -55,9 +55,7 @@ class Trip:
                 ]
             )
 
-        self.earnings = round(
-            earnings
-        )
+        self.earnings = round(earnings)
 
         return self.earnings
 
@@ -84,40 +82,64 @@ class Trip:
         )
 
         if self.driving_style:
-            multiplier = (
+            driving_multiplier = (
                 self.driving_style[
                     "fuel_multiplier"
                 ]
             )
 
-            self.fuel_used = max(
-                1,
-                round(
-                    base_fuel * multiplier
-                )
+            base_fuel = round(
+                base_fuel * driving_multiplier
             )
 
-        else:
-            self.fuel_used = base_fuel
+        engine_efficiency = (
+            self.matatu.get_fuel_efficiency()
+        )
+
+        self.fuel_used = max(
+            1,
+            round(
+                base_fuel * engine_efficiency
+            )
+        )
 
         return self.fuel_used
 
     def calculate_damage(self):
         if self.driving_style:
-            return self.driving_style["damage"]
+            base_damage = (
+                self.driving_style["damage"]
+            )
+        else:
+            difficulty = (
+                self.route.difficulty.lower()
+            )
 
-        difficulty = self.route.difficulty.lower()
+            if difficulty == "easy":
+                base_damage = 1
 
-        if difficulty == "easy":
-            return 1
+            elif difficulty == "medium":
+                base_damage = 2
 
-        elif difficulty == "medium":
-            return 2
+            elif difficulty == "hard":
+                base_damage = 4
 
-        elif difficulty == "hard":
-            return 4
+            else:
+                base_damage = 2
 
-        return 2
+        damage_reduction = (
+            self.matatu.get_damage_reduction()
+        )
+
+        final_damage = round(
+            base_damage
+            * (1 - damage_reduction)
+        )
+
+        return max(
+            0,
+            final_damage
+        )
 
     def calculate_rewards(self):
         difficulty = self.route.difficulty.lower()
@@ -162,12 +184,31 @@ class Trip:
             self.event
         )
 
-        self.fuel_used += (
-            self.event["fuel_cost"]
+        event_fuel = self.event["fuel_cost"]
+
+        engine_efficiency = (
+            self.matatu.get_fuel_efficiency()
+        )
+
+        reduced_event_fuel = round(
+            event_fuel * engine_efficiency
+        )
+
+        self.fuel_used += reduced_event_fuel
+
+        event_damage = self.event["damage"]
+
+        damage_reduction = (
+            self.matatu.get_damage_reduction()
+        )
+
+        reduced_event_damage = round(
+            event_damage
+            * (1 - damage_reduction)
         )
 
         self.matatu.damage(
-            self.event["damage"]
+            reduced_event_damage
         )
 
         self.player.earn_money(
@@ -186,12 +227,24 @@ class Trip:
         if delay <= 0:
             return
 
+        comfort_reduction = (
+            self.matatu.get_patience_reduction()
+        )
+
+        reduced_delay = round(
+            delay
+            * (1 - comfort_reduction)
+        )
+
+        if reduced_delay <= 0:
+            return
+
         remaining_passengers = []
 
         for passenger in self.passengers:
             still_riding = (
                 passenger.handle_trip_delay(
-                    delay
+                    reduced_delay
                 )
             )
 
@@ -241,9 +294,19 @@ class Trip:
             RandomEvent.generate_event()
         )
 
+        event_fuel = self.event["fuel_cost"]
+
+        engine_efficiency = (
+            self.matatu.get_fuel_efficiency()
+        )
+
+        reduced_event_fuel = round(
+            event_fuel * engine_efficiency
+        )
+
         total_fuel = (
             self.fuel_used
-            + self.event["fuel_cost"]
+            + reduced_event_fuel
         )
 
         if self.matatu.fuel < total_fuel:
@@ -272,6 +335,14 @@ class Trip:
 
         self.matatu.use_fuel(
             self.fuel_used
+        )
+
+        event_fuel_used = (
+            reduced_event_fuel
+        )
+
+        self.matatu.use_fuel(
+            event_fuel_used
         )
 
         trip_damage = (
