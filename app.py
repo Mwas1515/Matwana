@@ -27,10 +27,7 @@ def choose_route(routes):
             if 1 <= choice <= len(routes):
                 return routes[choice - 1]
 
-        print(
-            "Invalid choice. "
-            "Please select a valid route."
-        )
+        print("Invalid choice. Please select a valid route.")
 
 
 def maintenance_menu(player, matatu):
@@ -159,7 +156,6 @@ def garage_menu(player, matatu):
     while True:
         print("\nGARAGE")
         print("=" * 40)
-
         print(f"Money: KSh {player.money}")
 
         print("\nAvailable upgrades:")
@@ -199,6 +195,7 @@ def main():
 
     database.create_tables()
 
+    # Load or create player
     player = Player("Goon")
 
     player_data = database.get_player(
@@ -211,6 +208,7 @@ def main():
         )
 
         print("\nNew player created.")
+
     else:
         player_id = player_data[0]
 
@@ -222,10 +220,46 @@ def main():
 
         print("\nPlayer progress loaded.")
 
-    matatu = Matatu(
-        name="Beast",
-        model="Toyota Hiace"
+    # Load or create matatu
+    matatu_data = database.get_matatu(
+        player_id
     )
+
+    if matatu_data is None:
+        matatu = Matatu(
+            name="Beast",
+            model="Toyota Hiace"
+        )
+
+        matatu_id = database.create_matatu(
+            player_id,
+            matatu
+        )
+
+        print("New matatu created.")
+
+    else:
+        matatu_id = matatu_data[0]
+
+        matatu = Matatu(
+            name=matatu_data[1],
+            model=matatu_data[2],
+            capacity=matatu_data[3]
+        )
+
+        matatu.fuel = matatu_data[4]
+        matatu.fuel_capacity = matatu_data[5]
+        matatu.condition = matatu_data[6]
+        matatu.speed = matatu_data[7]
+        matatu.comfort = matatu_data[8]
+
+        matatu.engine_level = matatu_data[9]
+        matatu.suspension_level = matatu_data[10]
+        matatu.seat_level = matatu_data[11]
+        matatu.fuel_tank_level = matatu_data[12]
+        matatu.comfort_level = matatu_data[13]
+
+        print("Matatu progress loaded.")
 
     routes = [
         Route(
@@ -292,7 +326,6 @@ def main():
     )
 
     print("\nSELECTED ROUTE")
-
     selected_route.display_info()
 
     passengers = Passenger.generate_passengers(
@@ -329,24 +362,28 @@ def main():
     else:
         print("\nTrip could not be completed.")
 
+    # Save player and matatu progress
     database.save_player(
         player_id,
         player
     )
 
+    database.save_matatu(
+        matatu_id,
+        matatu
+    )
+
     print("\nPLAYER STATUS")
     print("=" * 40)
-
     print(f"Money: KSh {player.money}")
     print(f"Level: {player.level}")
     print(f"Experience: {player.experience}")
     print(f"Reputation: {player.reputation}")
 
     print("\nMATATU STATUS")
-
     matatu.display_info()
 
-    print("\nPlayer progress saved.")
+    print("\nPlayer and matatu progress saved.")
 
 
 if __name__ == "__main__":

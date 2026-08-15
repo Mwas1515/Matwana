@@ -12,7 +12,6 @@ class Database:
 
     def create_tables(self):
         connection = self.connect()
-
         cursor = connection.cursor()
 
         cursor.execute("""
@@ -67,12 +66,8 @@ class Database:
         connection.commit()
         connection.close()
 
-    def create_player(
-        self,
-        player
-    ):
+    def create_player(self, player):
         connection = self.connect()
-
         cursor = connection.cursor()
 
         cursor.execute("""
@@ -102,7 +97,6 @@ class Database:
 
     def get_player(self, name):
         connection = self.connect()
-
         cursor = connection.cursor()
 
         cursor.execute("""
@@ -125,7 +119,6 @@ class Database:
 
     def save_player(self, player_id, player):
         connection = self.connect()
-
         cursor = connection.cursor()
 
         cursor.execute("""
@@ -146,9 +139,129 @@ class Database:
 
         connection.commit()
         connection.close()
+
+    def create_matatu(self, player_id, matatu):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            INSERT INTO matatus (
+                player_id,
+                name,
+                model,
+                capacity,
+                fuel,
+                fuel_capacity,
+                condition,
+                speed,
+                comfort,
+                engine_level,
+                suspension_level,
+                seat_level,
+                fuel_tank_level,
+                comfort_level
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            player_id,
+            matatu.name,
+            matatu.model,
+            matatu.capacity,
+            matatu.fuel,
+            matatu.fuel_capacity,
+            matatu.condition,
+            matatu.speed,
+            matatu.comfort,
+            matatu.engine_level,
+            matatu.suspension_level,
+            matatu.seat_level,
+            matatu.fuel_tank_level,
+            matatu.comfort_level
+        ))
+
+        connection.commit()
+
+        matatu_id = cursor.lastrowid
+
+        connection.close()
+
+        return matatu_id
+
+    def get_matatu(self, player_id):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                name,
+                model,
+                capacity,
+                fuel,
+                fuel_capacity,
+                condition,
+                speed,
+                comfort,
+                engine_level,
+                suspension_level,
+                seat_level,
+                fuel_tank_level,
+                comfort_level
+            FROM matatus
+            WHERE player_id = ?
+            LIMIT 1
+        """, (player_id,))
+
+        matatu_data = cursor.fetchone()
+
+        connection.close()
+
+        return matatu_data
+
+    def save_matatu(self, matatu_id, matatu):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            UPDATE matatus
+            SET
+                name = ?,
+                model = ?,
+                capacity = ?,
+                fuel = ?,
+                fuel_capacity = ?,
+                condition = ?,
+                speed = ?,
+                comfort = ?,
+                engine_level = ?,
+                suspension_level = ?,
+                seat_level = ?,
+                fuel_tank_level = ?,
+                comfort_level = ?
+            WHERE id = ?
+        """, (
+            matatu.name,
+            matatu.model,
+            matatu.capacity,
+            matatu.fuel,
+            matatu.fuel_capacity,
+            matatu.condition,
+            matatu.speed,
+            matatu.comfort,
+            matatu.engine_level,
+            matatu.suspension_level,
+            matatu.seat_level,
+            matatu.fuel_tank_level,
+            matatu.comfort_level,
+            matatu_id
+        ))
+
+        connection.commit()
+        connection.close()
+
+
 if __name__ == "__main__":
     database = Database()
-
     database.create_tables()
 
     print("Database initialized successfully.")
