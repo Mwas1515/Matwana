@@ -1,20 +1,28 @@
 from models.player import Player
+from models.matatu import Matatu
 
 
 def main():
     player = Player("Goon")
 
-    print("🚐 Welcome to Matwana!")
+    matatu = Matatu(
+        name="Beast",
+        model="Toyota Hiace"
+    )
+
+    print("Welcome to Matwana!")
     print(f"Driver: {player.name}")
     print(f"Money: KSh {player.money}")
-    print(f"Level: {player.level}")
-    print(f"Experience: {player.experience}")
-    print(f"Reputation: {player.reputation}")
 
-    player.earn_money(1500)
+    matatu.display_info()
 
-    print(f"\nAfter completing a trip:")
-    print(f"Money: KSh {player.money}")
+    print("\nStarting a trip...")
+
+    matatu.use_fuel(15)
+    matatu.damage(5)
+
+    print("\nAfter the trip:")
+    matatu.display_info()
 
 
 if __name__ == "__main__":
