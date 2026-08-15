@@ -77,6 +77,36 @@ class Matatu:
     def can_carry(self, passenger_count):
         return passenger_count <= self.capacity
 
+    def get_fuel_efficiency(self):
+        reduction = (
+            self.engine_level - 1
+        ) * 0.05
+
+        return max(
+            0.70,
+            1.0 - reduction
+        )
+
+    def get_damage_reduction(self):
+        reduction = (
+            self.suspension_level - 1
+        ) * 0.10
+
+        return min(
+            0.50,
+            reduction
+        )
+
+    def get_patience_reduction(self):
+        reduction = (
+            self.comfort_level - 1
+        ) * 0.05
+
+        return min(
+            0.30,
+            reduction
+        )
+
     def upgrade_engine(self):
         self.engine_level += 1
         self.speed += 10
@@ -100,29 +130,47 @@ class Matatu:
     def display_info(self):
         print(f"\n{self.name}")
         print(f"Model: {self.model}")
-        print(f"Capacity: {self.capacity} passengers")
+        print(
+            f"Capacity: "
+            f"{self.capacity} passengers"
+        )
 
         print(
             f"Fuel: {self.fuel}L / "
             f"{self.fuel_capacity}L"
         )
 
-        print(f"Condition: {self.condition}%")
+        print(
+            f"Condition: "
+            f"{self.condition}%"
+        )
+
         print(f"Speed: {self.speed}")
         print(f"Comfort: {self.comfort}")
 
         print("\nUPGRADES")
-        print(f"Engine: Level {self.engine_level}")
+
         print(
-            f"Suspension: Level "
-            f"{self.suspension_level}"
+            f"Engine: "
+            f"Level {self.engine_level}"
         )
-        print(f"Seats: Level {self.seat_level}")
+
         print(
-            f"Fuel Tank: Level "
-            f"{self.fuel_tank_level}"
+            f"Suspension: "
+            f"Level {self.suspension_level}"
         )
+
         print(
-            f"Comfort: Level "
-            f"{self.comfort_level}"
+            f"Seats: "
+            f"Level {self.seat_level}"
+        )
+
+        print(
+            f"Fuel Tank: "
+            f"Level {self.fuel_tank_level}"
+        )
+
+        print(
+            f"Comfort: "
+            f"Level {self.comfort_level}"
         )
