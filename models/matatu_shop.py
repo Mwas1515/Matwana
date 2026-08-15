@@ -32,19 +32,14 @@ class MatatuShop:
     }
 
     @classmethod
-    def display_shop(cls, player, owned_matatus=None):
+    def display_shop(cls, player, owned_models=None):
         print("\nMATATU SHOP")
         print("=" * 50)
 
         print(f"Money: KSh {player.money}")
 
-        owned_names = set()
-
-        if owned_matatus:
-            for matatu in owned_matatus:
-                owned_names.add(
-                    matatu[1].lower()
-                )
+        if owned_models is None:
+            owned_models = []
 
         for index, (key, matatu) in enumerate(
             cls.MATATUS.items(),
@@ -53,14 +48,12 @@ class MatatuShop:
             print("\n" + "-" * 50)
 
             print(
-                f"{index}. "
-                f"{matatu['name']} "
+                f"{index}. {matatu['name']} "
                 f"({matatu['model']})"
             )
 
             print(
-                f"Price: "
-                f"KSh {matatu['price']}"
+                f"Price: KSh {matatu['price']}"
             )
 
             print(
@@ -74,27 +67,21 @@ class MatatuShop:
             )
 
             print(
-                f"Speed: "
-                f"{matatu['speed']}"
+                f"Speed: {matatu['speed']}"
             )
 
             print(
-                f"Comfort: "
-                f"{matatu['comfort']}"
+                f"Comfort: {matatu['comfort']}"
             )
 
-            if matatu["name"].lower() in owned_names:
-                print("Status: OWNED")
-            elif player.money >= matatu["price"]:
-                print("Status: AVAILABLE")
+            if matatu["model"] in owned_models:
+                print("Status: ALREADY OWNED")
             else:
-                print("Status: TOO EXPENSIVE")
+                print("Status: AVAILABLE")
 
     @classmethod
     def get_matatu(cls, matatu_key):
-        return cls.MATATUS.get(
-            matatu_key
-        )
+        return cls.MATATUS.get(matatu_key)
 
     @classmethod
     def get_matatu_by_index(cls, index):

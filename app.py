@@ -13,9 +13,7 @@ from database.database import Database
 # ==========================================
 
 def create_matatu_from_data(matatu_data):
-    """
-    Create a Matatu object from database data.
-    """
+    """Create a Matatu object from database data."""
 
     matatu = Matatu(
         name=matatu_data[1],
@@ -275,24 +273,167 @@ def garage_menu(player, matatu):
 # MATATU SHOP
 # ==========================================
 
-def matatu_shop_menu(player):
+def matatu_shop_menu(
+    player,
+    database,
+    player_id
+):
     while True:
+        owned_matatus = database.get_all_matatus(
+            player_id
+        )
+
+        owned_models = [
+            matatu_data[2]
+            for matatu_data in owned_matatus
+        ]
+
         print("\nMATATU SHOP")
         print("=" * 40)
 
-        MatatuShop.display_shop(player)
+        MatatuShop.display_shop(
+            player,
+            owned_models
+        )
 
         print("\n0. Leave Shop")
 
         choice = input(
-            "\nChoose an option: "
+            "\nChoose a matatu: "
         )
 
         if choice == "0":
             break
 
+        if not choice.isdigit():
+            print(
+                "\nPlease enter a valid number."
+            )
+            continue
+
+        choice = int(choice)
+
+        selected = MatatuShop.get_matatu_by_index(
+            choice
+        )
+
+        if selected is None:
+            print(
+                "\nInvalid choice."
+            )
+            continue
+
+        key, shop_matatu = selected
+
+        if shop_matatu["model"] in owned_models:
+            print(
+                "\nYou already own this matatu."
+            )
+
+            input(
+                "\nPress Enter to continue..."
+            )
+
+            continue
+
+        price = shop_matatu["price"]
+
+        if player.money < price:
+            print(
+                "\nYou don't have enough money."
+            )
+
+            print(
+                f"Required: KSh {price}"
+            )
+
+            print(
+                f"Your money: KSh {player.money}"
+            )
+
+            input(
+                "\nPress Enter to continue..."
+            )
+
+            continue
+
+        print("\nPURCHASE")
+        print("=" * 40)
+
         print(
-            "\nBuying matatus will be available soon."
+            f"Matatu: {shop_matatu['name']}"
+        )
+
+        print(
+            f"Model: {shop_matatu['model']}"
+        )
+
+        print(
+            f"Price: KSh {price}"
+        )
+
+        confirm = input(
+            "\nBuy this matatu? (y/n): "
+        ).lower()
+
+        if confirm != "y":
+            print(
+                "\nPurchase cancelled."
+            )
+
+            continue
+
+        # Create the new matatu.
+        new_matatu = Matatu(
+            name=shop_matatu["name"],
+            model=shop_matatu["model"],
+            capacity=shop_matatu["capacity"]
+        )
+
+        new_matatu.fuel_capacity = (
+            shop_matatu["fuel_capacity"]
+        )
+
+        new_matatu.fuel = (
+            shop_matatu["fuel_capacity"]
+        )
+
+        new_matatu.speed = (
+            shop_matatu["speed"]
+        )
+
+        new_matatu.comfort = (
+            shop_matatu["comfort"]
+        )
+
+        # Deduct money.
+        player.spend_money(price)
+
+        # Save the new matatu.
+        database.create_matatu(
+            player_id,
+            new_matatu,
+            active=False
+        )
+
+        # Save player money.
+        database.save_player(
+            player_id,
+            player
+        )
+
+        print("\n" + "=" * 40)
+        print("PURCHASE SUCCESSFUL")
+        print("=" * 40)
+
+        print(
+            f"You bought the "
+            f"{new_matatu.name}!"
+        )
+
+        print(
+            f"Money remaining: "
+            f"KSh {player.money}"
         )
 
         input(
@@ -316,7 +457,9 @@ def display_owned_matatus(
     print("=" * 50)
 
     if not matatus:
-        print("You don't own any matatus.")
+        print(
+            "You don't own any matatus."
+        )
         return
 
     for index, matatu_data in enumerate(
@@ -333,10 +476,11 @@ def display_owned_matatus(
         comfort = matatu_data[8]
         active = matatu_data[14]
 
-        if active:
-            status = "ACTIVE"
-        else:
-            status = "OWNED"
+        status = (
+            "ACTIVE"
+            if active
+            else "OWNED"
+        )
 
         print(f"\n{index}. {name}")
         print(f"   Model: {model}")
@@ -388,16 +532,16 @@ def switch_matatu(
         matatus,
         start=1
     ):
-        matatu_id = matatu_data[0]
         name = matatu_data[1]
         model = matatu_data[2]
         capacity = matatu_data[3]
         active = matatu_data[14]
 
-        if active:
-            status = "ACTIVE"
-        else:
-            status = "OWNED"
+        status = (
+            "ACTIVE"
+            if active
+            else "OWNED"
+        )
 
         print(f"\n{index}. {name}")
         print(f"   Model: {model}")
@@ -494,7 +638,7 @@ def matatu_garage_menu(
     current_matatu_id
 ):
     while True:
-        print("\nMY MATATUS")
+        print("\nMY MATATUs")
         print("=" * 40)
 
         display_owned_matatus(
@@ -543,7 +687,9 @@ def display_trip_history(
     print("=" * 50)
 
     if not trips:
-        print("No trips completed yet.")
+        print(
+            "No trips completed yet."
+        )
         return
 
     for trip in trips:
@@ -559,8 +705,12 @@ def display_trip_history(
         print(f"\nTrip #{trip_id}")
         print(f"Route: {route_name}")
         print(f"Passengers: {passengers}")
-        print(f"Earnings: KSh {earnings}")
-        print(f"Fuel used: {fuel_used}L")
+        print(
+            f"Earnings: KSh {earnings}"
+        )
+        print(
+            f"Fuel used: {fuel_used}L"
+        )
 
         if event_name:
             print(
@@ -570,7 +720,6 @@ def display_trip_history(
         print(
             f"XP earned: {experience}"
         )
-
         print(
             f"Reputation: +{reputation}"
         )
@@ -764,16 +913,20 @@ def main_menu(
         print("MATWANA")
         print("=" * 40)
 
-        print(f"Driver: {player.name}")
-        print(f"Money: KSh {player.money}")
-        print(f"Level: {player.level}")
         print(
-            f"Experience: "
-            f"{player.experience}"
+            f"Driver: {player.name}"
         )
         print(
-            f"Reputation: "
-            f"{player.reputation}"
+            f"Money: KSh {player.money}"
+        )
+        print(
+            f"Level: {player.level}"
+        )
+        print(
+            f"Experience: {player.experience}"
+        )
+        print(
+            f"Reputation: {player.reputation}"
         )
 
         print(
@@ -844,7 +997,9 @@ def main_menu(
 
         elif choice == "5":
             matatu_shop_menu(
-                player
+                player,
+                database,
+                player_id
             )
 
         elif choice == "6":
