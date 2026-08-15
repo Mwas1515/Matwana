@@ -4,6 +4,7 @@ from models.route import Route
 from models.passenger import Passenger
 from models.trip import Trip
 from models.garage import Garage
+from database.database import Database
 
 
 def choose_route(routes):
@@ -65,31 +66,36 @@ def maintenance_menu(player, matatu):
                 print("Amount must be greater than zero.")
                 continue
 
-            cost = matatu.calculate_fuel_cost(litres)
+            fuel_space = (
+                matatu.fuel_capacity - matatu.fuel
+            )
+
+            if fuel_space <= 0:
+                print("Fuel tank is already full.")
+                continue
+
+            actual_litres = min(
+                litres,
+                fuel_space
+            )
+
+            cost = matatu.calculate_fuel_cost(
+                actual_litres
+            )
 
             if cost > player.money:
                 print("You don't have enough money.")
                 continue
 
-            fuel_added = matatu.refuel(litres)
-
-            if fuel_added == 0:
-                print("Fuel tank is already full.")
-                continue
-
-            actual_cost = matatu.calculate_fuel_cost(
-                fuel_added
+            fuel_added = matatu.refuel(
+                actual_litres
             )
 
-            if actual_cost > player.money:
-                print("You don't have enough money.")
-                continue
-
-            player.spend_money(actual_cost)
+            player.spend_money(cost)
 
             print(
                 f"Added {fuel_added}L of fuel "
-                f"for KSh {actual_cost}."
+                f"for KSh {cost}."
             )
 
         elif choice == "2":
@@ -107,27 +113,34 @@ def maintenance_menu(player, matatu):
                 print("Amount must be greater than zero.")
                 continue
 
-            repaired = min(
-                amount,
+            available_condition = (
                 100 - matatu.condition
             )
 
-            if repaired == 0:
+            if available_condition <= 0:
                 print(
                     "Matatu is already in "
                     "perfect condition."
                 )
                 continue
 
+            actual_repair = min(
+                amount,
+                available_condition
+            )
+
             cost = matatu.calculate_repair_cost(
-                repaired
+                actual_repair
             )
 
             if cost > player.money:
                 print("You don't have enough money.")
                 continue
 
-            matatu.repair(repaired)
+            repaired = matatu.repair(
+                actual_repair
+            )
+
             player.spend_money(cost)
 
             print(
@@ -150,7 +163,6 @@ def garage_menu(player, matatu):
         print(f"Money: KSh {player.money}")
 
         print("\nAvailable upgrades:")
-
         print("1. Engine - KSh 5,000")
         print("2. Suspension - KSh 3,000")
         print("3. Seats - KSh 4,000")
@@ -181,8 +193,34 @@ def garage_menu(player, matatu):
         else:
             print("Invalid choice.")
 
+
 def main():
+    database = Database()
+
+    database.create_tables()
+
     player = Player("Goon")
+
+    player_data = database.get_player(
+        player.name
+    )
+
+    if player_data is None:
+        player_id = database.create_player(
+            player
+        )
+
+        print("\nNew player created.")
+    else:
+        player_id = player_data[0]
+
+        player.name = player_data[1]
+        player.money = player_data[2]
+        player.level = player_data[3]
+        player.experience = player_data[4]
+        player.reputation = player_data[5]
+
+        print("\nPlayer progress loaded.")
 
     matatu = Matatu(
         name="Beast",
@@ -227,7 +265,7 @@ def main():
         )
     ]
 
-    print("=" * 40)
+    print("\n" + "=" * 40)
     print("WELCOME TO MATWANA")
     print("=" * 40)
 
@@ -239,13 +277,22 @@ def main():
 
     matatu.display_info()
 
-    maintenance_menu(player, matatu)
+    maintenance_menu(
+        player,
+        matatu
+    )
 
-    garage_menu(player, matatu)
+    garage_menu(
+        player,
+        matatu
+    )
 
-    selected_route = choose_route(routes)
+    selected_route = choose_route(
+        routes
+    )
 
     print("\nSELECTED ROUTE")
+
     selected_route.display_info()
 
     passengers = Passenger.generate_passengers(
@@ -258,7 +305,9 @@ def main():
     for passenger in passengers:
         passenger.display_info()
 
-    if not matatu.can_carry(len(passengers)):
+    if not matatu.can_carry(
+        len(passengers)
+    ):
         print("\nToo many passengers!")
         return
 
@@ -280,7 +329,12 @@ def main():
     else:
         print("\nTrip could not be completed.")
 
-    print("\nUPDATED PLAYER STATUS")
+    database.save_player(
+        player_id,
+        player
+    )
+
+    print("\nPLAYER STATUS")
     print("=" * 40)
 
     print(f"Money: KSh {player.money}")
@@ -288,9 +342,11 @@ def main():
     print(f"Experience: {player.experience}")
     print(f"Reputation: {player.reputation}")
 
-    print("\nUPDATED MATATU STATUS")
+    print("\nMATATU STATUS")
 
     matatu.display_info()
+
+    print("\nPlayer progress saved.")
 
 
 if __name__ == "__main__":
