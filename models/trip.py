@@ -3,7 +3,13 @@ from models.driving import DrivingStyle
 
 
 class Trip:
-    def __init__(self, player, matatu, route, passengers):
+    def __init__(
+        self,
+        player,
+        matatu,
+        route,
+        passengers
+    ):
         self.player = player
         self.matatu = matatu
         self.route = route
@@ -39,31 +45,32 @@ class Trip:
     # ==========================================
 
     def get_difficulty_multiplier(self):
-        difficulty = self.route.difficulty.lower()
+        """
+        Get the earnings multiplier from the route.
 
-        if difficulty == "easy":
-            return 1.0
+        Route is the source of truth for difficulty.
+        """
 
-        if difficulty == "medium":
-            return 1.2
-
-        if difficulty == "hard":
-            return 1.5
-
-        return 1.0
+        return self.route.get_difficulty_multiplier()
 
     # ==========================================
     # EARNINGS
     # ==========================================
 
     def calculate_earnings(self):
-        # Base earnings from passengers.
+        # -------------------------
+        # BASE EARNINGS
+        # -------------------------
+
         self.base_earnings = sum(
             passenger.fare
             for passenger in self.passengers
         )
 
-        # Apply route difficulty multiplier.
+        # -------------------------
+        # DIFFICULTY BONUS
+        # -------------------------
+
         difficulty_multiplier = (
             self.get_difficulty_multiplier()
         )
@@ -80,7 +87,10 @@ class Trip:
 
         earnings = difficulty_earnings
 
-        # Apply driving style multiplier.
+        # -------------------------
+        # DRIVING STYLE BONUS
+        # -------------------------
+
         if self.driving_style:
             driving_multiplier = (
                 self.driving_style[
@@ -93,8 +103,13 @@ class Trip:
             earnings *= driving_multiplier
 
             self.driving_bonus = round(
-                earnings - before_driving
+                earnings
+                - before_driving
             )
+
+        # -------------------------
+        # FINAL EARNINGS
+        # -------------------------
 
         self.earnings = round(
             earnings
@@ -107,7 +122,9 @@ class Trip:
     # ==========================================
 
     def calculate_fuel_used(self):
-        difficulty = self.route.difficulty.lower()
+        difficulty = (
+            self.route.difficulty.lower()
+        )
 
         if difficulty == "easy":
             fuel_rate = 0.20
@@ -124,11 +141,15 @@ class Trip:
         base_fuel = max(
             1,
             round(
-                self.route.distance * fuel_rate
+                self.route.distance
+                * fuel_rate
             )
         )
 
-        # Apply driving style fuel multiplier.
+        # -------------------------
+        # DRIVING STYLE
+        # -------------------------
+
         if self.driving_style:
             driving_multiplier = (
                 self.driving_style[
@@ -141,7 +162,10 @@ class Trip:
                 * driving_multiplier
             )
 
-        # Apply matatu engine efficiency.
+        # -------------------------
+        # ENGINE EFFICIENCY
+        # -------------------------
+
         engine_efficiency = (
             self.matatu.get_fuel_efficiency()
         )
@@ -202,31 +226,32 @@ class Trip:
     # ==========================================
 
     def calculate_rewards(self):
-        difficulty = (
-            self.route.difficulty.lower()
+        """
+        Calculate XP and reputation using
+        the rewards defined by the Route.
+
+        Route is the single source of truth
+        for base trip rewards.
+        """
+
+        self.experience_earned = (
+            self.route.get_experience_reward()
         )
 
-        if difficulty == "easy":
-            self.experience_earned = 30
-            self.reputation_earned = 2
-
-        elif difficulty == "medium":
-            self.experience_earned = 50
-            self.reputation_earned = 5
-
-        elif difficulty == "hard":
-            self.experience_earned = 80
-            self.reputation_earned = 8
-
-        else:
-            self.experience_earned = 30
-            self.reputation_earned = 2
+        self.reputation_earned = (
+            self.route.get_reputation_reward()
+        )
 
     # ==========================================
     # DRIVING REPUTATION
     # ==========================================
 
     def calculate_driving_reputation(self):
+        """
+        Get additional reputation from
+        the selected driving style.
+        """
+
         if not self.driving_style:
             return 0
 
@@ -373,7 +398,10 @@ class Trip:
         if self.completed:
             return False
 
-        # Check passenger capacity.
+        # -------------------------
+        # PASSENGER CAPACITY
+        # -------------------------
+
         if not self.matatu.can_carry(
             len(self.passengers)
         ):
@@ -384,7 +412,10 @@ class Trip:
 
             return False
 
-        # Check matatu condition.
+        # -------------------------
+        # MATATU CONDITION
+        # -------------------------
+
         if self.matatu.condition <= 0:
             print(
                 "\nYour matatu is too damaged "
@@ -519,10 +550,14 @@ class Trip:
         )
 
         # -------------------------
-        # XP & REPUTATION
+        # ROUTE REWARDS
         # -------------------------
 
         self.calculate_rewards()
+
+        # -------------------------
+        # DRIVING REPUTATION
+        # -------------------------
 
         driving_reputation = (
             self.calculate_driving_reputation()
@@ -531,6 +566,10 @@ class Trip:
         self.reputation_earned += (
             driving_reputation
         )
+
+        # -------------------------
+        # PLAYER PROGRESSION
+        # -------------------------
 
         self.player.add_experience(
             self.experience_earned
@@ -658,7 +697,22 @@ class Trip:
         )
 
         print(
-            f"Reputation: "
+            f"Route reputation: "
+            f"+{self.route.get_reputation_reward()}"
+        )
+
+        driving_reputation = (
+            self.calculate_driving_reputation()
+        )
+
+        if driving_reputation:
+            print(
+                f"Driving reputation: "
+                f"+{driving_reputation}"
+            )
+
+        print(
+            f"Total reputation: "
             f"+{self.reputation_earned}"
         )
 
