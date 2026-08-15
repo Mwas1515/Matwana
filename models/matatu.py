@@ -21,6 +21,9 @@ class Matatu:
     def damage(self, amount):
         self.condition = max(self.condition - amount, 0)
 
+    def can_carry(self, passenger_count):
+        return passenger_count <= self.capacity
+
     def display_info(self):
         print(f"\n {self.name}")
         print(f"Model: {self.model}")
