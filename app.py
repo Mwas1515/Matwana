@@ -36,12 +36,10 @@ def maintenance_menu(player, matatu):
         print("=" * 40)
 
         print(f"Money: KSh {player.money}")
-
         print(
             f"Fuel: {matatu.fuel}L / "
             f"{matatu.fuel_capacity}L"
         )
-
         print(f"Condition: {matatu.condition}%")
 
         print("\n1. Refuel")
@@ -229,12 +227,240 @@ def display_trip_history(database, player_id):
         print(f"Reputation: +{reputation}")
 
 
+def display_player_stats(player):
+    print("\nPLAYER STATS")
+    print("=" * 40)
+
+    print(f"Driver: {player.name}")
+    print(f"Money: KSh {player.money}")
+    print(f"Level: {player.level}")
+    print(f"Experience: {player.experience}")
+    print(f"Reputation: {player.reputation}")
+
+
+def display_matatu_status(matatu):
+    print("\nMY MATATU")
+    print("=" * 40)
+
+    matatu.display_info()
+
+    input("\nPress Enter to continue...")
+
+
+def save_game(database, player_id, matatu_id, player, matatu):
+    database.save_player(
+        player_id,
+        player
+    )
+
+    database.save_matatu(
+        matatu_id,
+        matatu
+    )
+
+
+def start_trip(
+    player,
+    matatu,
+    routes,
+    database,
+    player_id,
+    matatu_id
+):
+    print("\nSTART TRIP")
+    print("=" * 40)
+
+    if matatu.fuel <= 0:
+        print("Your matatu has no fuel.")
+        print("Visit Maintenance to refuel.")
+        input("\nPress Enter to continue...")
+        return
+
+    if matatu.condition <= 0:
+        print("Your matatu is badly damaged.")
+        print("Visit Maintenance to repair it.")
+        input("\nPress Enter to continue...")
+        return
+
+    selected_route = choose_route(
+        routes
+    )
+
+    print("\nSELECTED ROUTE")
+
+    selected_route.display_info()
+
+    passengers = Passenger.generate_passengers(
+        selected_route,
+        matatu.capacity
+    )
+
+    print("\nPASSENGERS")
+
+    for passenger in passengers:
+        passenger.display_info()
+
+    if not matatu.can_carry(
+        len(passengers)
+    ):
+        print("\nToo many passengers!")
+        input("\nPress Enter to continue...")
+        return
+
+    print(
+        f"\n{len(passengers)} passengers boarded."
+    )
+
+    trip = Trip(
+        player=player,
+        matatu=matatu,
+        route=selected_route,
+        passengers=passengers
+    )
+
+    print("\nStarting trip...")
+
+    if trip.complete_trip():
+        trip.display_summary()
+
+        database.save_trip(
+            player_id,
+            trip
+        )
+
+        save_game(
+            database,
+            player_id,
+            matatu_id,
+            player,
+            matatu
+        )
+
+        print("\nTrip saved to database.")
+
+    else:
+        print("\nTrip could not be completed.")
+
+    input("\nPress Enter to continue...")
+
+
+def main_menu(
+    player,
+    matatu,
+    routes,
+    database,
+    player_id,
+    matatu_id
+):
+    while True:
+        print("\n" + "=" * 40)
+        print("MATWANA")
+        print("=" * 40)
+
+        print(f"Driver: {player.name}")
+        print(f"Money: KSh {player.money}")
+        print(f"Level: {player.level}")
+        print(f"Reputation: {player.reputation}")
+
+        print("\n1. Start Trip")
+        print("2. My Matatu")
+        print("3. Maintenance")
+        print("4. Garage")
+        print("5. Trip History")
+        print("6. Player Stats")
+        print("7. Exit")
+
+        choice = input("\nChoose an option: ")
+
+        if choice == "1":
+            start_trip(
+                player,
+                matatu,
+                routes,
+                database,
+                player_id,
+                matatu_id
+            )
+
+        elif choice == "2":
+            display_matatu_status(
+                matatu
+            )
+
+        elif choice == "3":
+            maintenance_menu(
+                player,
+                matatu
+            )
+
+            save_game(
+                database,
+                player_id,
+                matatu_id,
+                player,
+                matatu
+            )
+
+            print("\nGame saved.")
+
+        elif choice == "4":
+            garage_menu(
+                player,
+                matatu
+            )
+
+            save_game(
+                database,
+                player_id,
+                matatu_id,
+                player,
+                matatu
+            )
+
+            print("\nGame saved.")
+
+        elif choice == "5":
+            display_trip_history(
+                database,
+                player_id
+            )
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "6":
+            display_player_stats(
+                player
+            )
+
+            input("\nPress Enter to continue...")
+
+        elif choice == "7":
+            save_game(
+                database,
+                player_id,
+                matatu_id,
+                player,
+                matatu
+            )
+
+            print("\nGame saved.")
+            print("Thanks for playing Matwana.")
+
+            break
+
+        else:
+            print("Invalid choice. Please select 1-7.")
+
+
 def main():
     database = Database()
 
     database.create_tables()
 
-    # Load or create player
+    # -------------------------
+    # LOAD OR CREATE PLAYER
+    # -------------------------
+
     player = Player("Goon")
 
     player_data = database.get_player(
@@ -259,7 +485,10 @@ def main():
 
         print("\nPlayer progress loaded.")
 
-    # Load or create matatu
+    # -------------------------
+    # LOAD OR CREATE MATATU
+    # -------------------------
+
     matatu_data = database.get_matatu(
         player_id
     )
@@ -300,6 +529,10 @@ def main():
 
         print("Matatu progress loaded.")
 
+    # -------------------------
+    # ROUTES
+    # -------------------------
+
     routes = [
         Route(
             name="CBD → Rongai",
@@ -338,107 +571,18 @@ def main():
         )
     ]
 
-    print("\n" + "=" * 40)
-    print("WELCOME TO MATWANA")
-    print("=" * 40)
+    # -------------------------
+    # START GAME
+    # -------------------------
 
-    print(f"Driver: {player.name}")
-    print(f"Money: KSh {player.money}")
-    print(f"Level: {player.level}")
-    print(f"Experience: {player.experience}")
-    print(f"Reputation: {player.reputation}")
-
-    matatu.display_info()
-
-    maintenance_menu(
+    main_menu(
         player,
-        matatu
-    )
-
-    garage_menu(
-        player,
-        matatu
-    )
-
-    selected_route = choose_route(
-        routes
-    )
-
-    print("\nSELECTED ROUTE")
-
-    selected_route.display_info()
-
-    passengers = Passenger.generate_passengers(
-        selected_route,
-        matatu.capacity
-    )
-
-    print("\nPASSENGERS")
-
-    for passenger in passengers:
-        passenger.display_info()
-
-    if not matatu.can_carry(
-        len(passengers)
-    ):
-        print("\nToo many passengers!")
-        return
-
-    print(
-        f"\n{len(passengers)} passengers boarded."
-    )
-
-    trip = Trip(
-        player=player,
-        matatu=matatu,
-        route=selected_route,
-        passengers=passengers
-    )
-
-    print("\nStarting trip...")
-
-    if trip.complete_trip():
-        trip.display_summary()
-
-        database.save_trip(
-            player_id,
-            trip
-        )
-
-        print("\nTrip saved to database.")
-
-    else:
-        print("\nTrip could not be completed.")
-
-    # Save current player and matatu
-    database.save_player(
-        player_id,
-        player
-    )
-
-    database.save_matatu(
-        matatu_id,
-        matatu
-    )
-
-    print("\nPLAYER STATUS")
-    print("=" * 40)
-
-    print(f"Money: KSh {player.money}")
-    print(f"Level: {player.level}")
-    print(f"Experience: {player.experience}")
-    print(f"Reputation: {player.reputation}")
-
-    print("\nMATATU STATUS")
-
-    matatu.display_info()
-
-    display_trip_history(
+        matatu,
+        routes,
         database,
-        player_id
+        player_id,
+        matatu_id
     )
-
-    print("\nPlayer, matatu, and trip progress saved.")
 
 
 if __name__ == "__main__":
