@@ -76,11 +76,13 @@ def choose_route(routes, player):
                     player.level
                 ):
                     print("\nRoute locked.")
+
                     print(
                         f"You need Level "
                         f"{selected_route.required_level} "
                         f"to unlock this route."
                     )
+
                     continue
 
                 return selected_route
@@ -100,20 +102,31 @@ def maintenance_menu(player, matatu):
         print("\nMAINTENANCE")
         print("=" * 40)
 
-        print(f"Money: KSh {player.money}")
         print(
-            f"Fuel: {matatu.fuel}L / "
-            f"{matatu.fuel_capacity}L"
+            f"Money: KSh {player.money}"
         )
-        print(f"Condition: {matatu.condition}%")
+
+        print(
+            f"Fuel: "
+            f"{matatu.fuel:g}L / "
+            f"{matatu.fuel_capacity:g}L"
+        )
+
+        print(
+            f"Condition: "
+            f"{matatu.condition:g}%"
+        )
 
         print("\n1. Refuel")
         print("2. Repair")
         print("3. Continue")
 
-        choice = input("\nChoose an option: ")
+        choice = input(
+            "\nChoose an option: "
+        )
 
         if choice == "1":
+
             try:
                 litres = int(
                     input(
@@ -121,22 +134,31 @@ def maintenance_menu(player, matatu):
                         "do you want to buy? "
                     )
                 )
+
             except ValueError:
-                print("Please enter a valid number.")
+                print(
+                    "Please enter a valid number."
+                )
+
                 continue
 
             if litres <= 0:
                 print(
                     "Amount must be greater than zero."
                 )
+
                 continue
 
             fuel_space = (
-                matatu.fuel_capacity - matatu.fuel
+                matatu.fuel_capacity
+                - matatu.fuel
             )
 
             if fuel_space <= 0:
-                print("Fuel tank is already full.")
+                print(
+                    "Fuel tank is already full."
+                )
+
                 continue
 
             actual_litres = min(
@@ -152,6 +174,7 @@ def maintenance_menu(player, matatu):
                 print(
                     "You don't have enough money."
                 )
+
                 continue
 
             fuel_added = matatu.refuel(
@@ -166,20 +189,26 @@ def maintenance_menu(player, matatu):
             )
 
         elif choice == "2":
+
             try:
                 amount = int(
                     input(
                         "How much should you repair? "
                     )
                 )
+
             except ValueError:
-                print("Please enter a valid number.")
+                print(
+                    "Please enter a valid number."
+                )
+
                 continue
 
             if amount <= 0:
                 print(
                     "Amount must be greater than zero."
                 )
+
                 continue
 
             available_condition = (
@@ -191,6 +220,7 @@ def maintenance_menu(player, matatu):
                     "Matatu is already in "
                     "perfect condition."
                 )
+
                 continue
 
             actual_repair = min(
@@ -206,6 +236,7 @@ def maintenance_menu(player, matatu):
                 print(
                     "You don't have enough money."
                 )
+
                 continue
 
             repaired = matatu.repair(
@@ -235,7 +266,9 @@ def garage_menu(player, matatu):
         print("\nGARAGE")
         print("=" * 40)
 
-        print(f"Money: KSh {player.money}")
+        print(
+            f"Money: KSh {player.money}"
+        )
 
         Garage.display_upgrades(matatu)
 
@@ -289,7 +322,7 @@ def matatu_shop_menu(
         ]
 
         print("\nMATATU SHOP")
-        print("=" * 40)
+        print("=" * 50)
 
         MatatuShop.display_shop(
             player,
@@ -309,6 +342,7 @@ def matatu_shop_menu(
             print(
                 "\nPlease enter a valid number."
             )
+
             continue
 
         choice = int(choice)
@@ -321,6 +355,7 @@ def matatu_shop_menu(
             print(
                 "\nInvalid choice."
             )
+
             continue
 
         key, shop_matatu = selected
@@ -361,15 +396,18 @@ def matatu_shop_menu(
         print("=" * 40)
 
         print(
-            f"Matatu: {shop_matatu['name']}"
+            f"Matatu: "
+            f"{shop_matatu['name']}"
         )
 
         print(
-            f"Model: {shop_matatu['model']}"
+            f"Model: "
+            f"{shop_matatu['model']}"
         )
 
         print(
-            f"Price: KSh {price}"
+            f"Price: "
+            f"KSh {price}"
         )
 
         confirm = input(
@@ -380,6 +418,7 @@ def matatu_shop_menu(
             print(
                 "\nPurchase cancelled."
             )
+
             continue
 
         new_matatu = Matatu(
@@ -440,74 +479,148 @@ def matatu_shop_menu(
 # MY MATATUS
 # ==========================================
 
-def display_owned_matatus(
+def my_matatus_menu(
     database,
     player_id,
-    player
+    player,
+    current_matatu_id
 ):
-    """Display all matatus owned by the player."""
+    """
+    Display all owned matatus.
 
-    matatus = database.get_all_matatus(
-        player_id
-    )
+    The player can select a matatu,
+    switch the active vehicle, or go back.
+    """
 
-    print("\nMY MATATUS")
-    print("=" * 40)
+    while True:
+        matatus = database.get_all_matatus(
+            player_id
+        )
 
-    print(f"Money: KSh {player.money}")
+        print("\nMY MATATUS")
+        print("=" * 40)
 
-    if not matatus:
-        print("\nYou don't own any matatus.")
-        return
+        print(
+            f"Money: KSh {player.money}"
+        )
 
-    for index, matatu_data in enumerate(
-        matatus,
-        start=1
-    ):
-        name = matatu_data[1]
-        model = matatu_data[2]
-        capacity = matatu_data[3]
-        fuel = matatu_data[4]
-        fuel_capacity = matatu_data[5]
-        condition = matatu_data[6]
-        active = matatu_data[14]
+        if not matatus:
+            print(
+                "\nYou don't own any matatus."
+            )
 
-        status = (
-            "ACTIVE"
-            if active
-            else "Owned"
+            print("\n1. Back")
+
+            choice = input(
+                "\nChoose an option: "
+            )
+
+            if choice == "1":
+                return current_matatu_id
+
+            print(
+                "\nInvalid choice."
+            )
+
+            continue
+
+        # ----------------------------------
+        # DISPLAY OWNED MATATUS
+        # ----------------------------------
+
+        for index, matatu_data in enumerate(
+            matatus,
+            start=1
+        ):
+            matatu_id = matatu_data[0]
+            name = matatu_data[1]
+            model = matatu_data[2]
+            capacity = matatu_data[3]
+            fuel = matatu_data[4]
+            fuel_capacity = matatu_data[5]
+            condition = matatu_data[6]
+            active = matatu_data[14]
+
+            status = (
+                "ACTIVE"
+                if active
+                else "Owned"
+            )
+
+            print(
+                f"\n{index}. "
+                f"{name} - {model}"
+            )
+
+            print(
+                f"   Capacity: "
+                f"{capacity}"
+            )
+
+            print(
+                f"   Fuel: "
+                f"{fuel:g}/"
+                f"{fuel_capacity:g}L"
+            )
+
+            print(
+                f"   Condition: "
+                f"{condition:g}%"
+            )
+
+            print(
+                f"   Status: "
+                f"{status}"
+            )
+
+        print(
+            f"\n{len(matatus) + 1}. "
+            f"Switch Matatu"
         )
 
         print(
-            f"\n{index}. {name} - {model}"
+            f"{len(matatus) + 2}. "
+            f"Back"
         )
 
-        print(
-            f"   Capacity: {capacity}"
+        choice = input(
+            "\nChoose an option: "
         )
 
-        print(
-            f"   Fuel: "
-            f"{fuel:g}/{fuel_capacity:g}L"
-        )
+        # ----------------------------------
+        # SWITCH MATATU
+        # ----------------------------------
 
-        print(
-            f"   Condition: "
-            f"{condition:g}%"
-        )
+        switch_option = len(matatus) + 1
+        back_option = len(matatus) + 2
 
-        print(
-            f"   Status: {status}"
-        )
+        if choice == str(switch_option):
 
+            current_matatu_id = switch_matatu(
+                database,
+                player_id,
+                current_matatu_id
+            )
+
+        elif choice == str(back_option):
+
+            return current_matatu_id
+
+        else:
+            print(
+                "\nInvalid choice."
+            )
+
+
+# ==========================================
+# SWITCH MATATU
+# ==========================================
 
 def switch_matatu(
     database,
     player_id,
     current_matatu_id
 ):
-    """Switch the player's active matatu."""
-
     matatus = database.get_all_matatus(
         player_id
     )
@@ -532,6 +645,7 @@ def switch_matatu(
     ):
         name = matatu_data[1]
         model = matatu_data[2]
+        capacity = matatu_data[3]
         active = matatu_data[14]
 
         status = (
@@ -541,8 +655,18 @@ def switch_matatu(
         )
 
         print(
-            f"{index}. {name} - {model} "
-            f"[{status}]"
+            f"\n{index}. "
+            f"{name} - {model}"
+        )
+
+        print(
+            f"   Capacity: "
+            f"{capacity}"
+        )
+
+        print(
+            f"   Status: "
+            f"{status}"
         )
 
     print("\n0. Cancel")
@@ -559,6 +683,7 @@ def switch_matatu(
             print(
                 "Please enter a valid number."
             )
+
             continue
 
         choice = int(choice)
@@ -567,6 +692,7 @@ def switch_matatu(
             print(
                 "Invalid choice."
             )
+
             continue
 
         selected_matatu = matatus[
@@ -612,7 +738,8 @@ def switch_matatu(
         )
 
         print(
-            f"Model: {selected_matatu[2]}"
+            f"Model: "
+            f"{selected_matatu[2]}"
         )
 
         input(
@@ -620,118 +747,6 @@ def switch_matatu(
         )
 
         return selected_id
-
-
-def my_matatus_menu(
-    database,
-    player_id,
-    player,
-    current_matatu_id
-):
-    """
-    Display owned matatus and allow
-    the player to switch between them.
-    """
-
-    while True:
-        print("\nMY MATATUS")
-        print("=" * 40)
-
-        print(
-            f"Money: KSh {player.money}"
-        )
-
-        matatus = database.get_all_matatus(
-            player_id
-        )
-
-        if not matatus:
-            print(
-                "\nYou don't own any matatus."
-            )
-
-            print("\n4. Back")
-
-            choice = input(
-                "\nChoose an option: "
-            )
-
-            if choice == "4":
-                return current_matatu_id
-
-            print("Invalid choice.")
-            continue
-
-        for index, matatu_data in enumerate(
-            matatus,
-            start=1
-        ):
-            name = matatu_data[1]
-            model = matatu_data[2]
-            capacity = matatu_data[3]
-            fuel = matatu_data[4]
-            fuel_capacity = matatu_data[5]
-            condition = matatu_data[6]
-            active = matatu_data[14]
-
-            status = (
-                "ACTIVE"
-                if active
-                else "Owned"
-            )
-
-            print(
-                f"\n{index}. "
-                f"{name} - {model}"
-            )
-
-            print(
-                f"   Capacity: {capacity}"
-            )
-
-            print(
-                f"   Fuel: "
-                f"{fuel:g}/{fuel_capacity:g}L"
-            )
-
-            print(
-                f"   Condition: "
-                f"{condition:g}%"
-            )
-
-            print(
-                f"   Status: {status}"
-            )
-
-        switch_option = len(matatus) + 1
-        back_option = len(matatus) + 2
-
-        print(
-            f"\n{switch_option}. Switch Matatu"
-        )
-
-        print(
-            f"{back_option}. Back"
-        )
-
-        choice = input(
-            "\nChoose an option: "
-        )
-
-        if choice == str(switch_option):
-            current_matatu_id = switch_matatu(
-                database,
-                player_id,
-                current_matatu_id
-            )
-
-        elif choice == str(back_option):
-            return current_matatu_id
-
-        else:
-            print(
-                "\nInvalid choice."
-            )
 
 
 # ==========================================
@@ -753,6 +768,7 @@ def display_trip_history(
         print(
             "No trips completed yet."
         )
+
         return
 
     for trip in trips:
@@ -765,27 +781,43 @@ def display_trip_history(
         experience = trip[6]
         reputation = trip[7]
 
-        print(f"\nTrip #{trip_id}")
-        print(f"Route: {route_name}")
-        print(f"Passengers: {passengers}")
         print(
-            f"Earnings: KSh {earnings}"
+            f"\nTrip #{trip_id}"
         )
+
         print(
-            f"Fuel used: {fuel_used}L"
+            f"Route: {route_name}"
+        )
+
+        print(
+            f"Passengers: "
+            f"{passengers}"
+        )
+
+        print(
+            f"Earnings: "
+            f"KSh {earnings}"
+        )
+
+        print(
+            f"Fuel used: "
+            f"{fuel_used}L"
         )
 
         if event_name:
             print(
-                f"Event: {event_name}"
+                f"Event: "
+                f"{event_name}"
             )
 
         print(
-            f"XP earned: {experience}"
+            f"XP earned: "
+            f"{experience}"
         )
 
         print(
-            f"Reputation: +{reputation}"
+            f"Reputation: "
+            f"+{reputation}"
         )
 
 
@@ -881,7 +913,9 @@ def start_trip(
     )
 
     if selected_route is None:
-        print("\nTrip cancelled.")
+        print(
+            "\nTrip cancelled."
+        )
 
         input(
             "\nPress Enter to continue..."
@@ -931,6 +965,7 @@ def start_trip(
     print("\nStarting trip...")
 
     if trip.complete_trip():
+
         trip.display_summary()
 
         database.save_trip(
@@ -951,6 +986,7 @@ def start_trip(
         )
 
     else:
+
         print(
             "\nTrip could not be completed."
         )
@@ -973,28 +1009,34 @@ def main_menu(
     matatu_id
 ):
     while True:
+
         print("\n" + "=" * 40)
         print("MATWANA")
         print("=" * 40)
 
         print(
-            f"Driver: {player.name}"
+            f"Driver: "
+            f"{player.name}"
         )
 
         print(
-            f"Money: KSh {player.money}"
+            f"Money: "
+            f"KSh {player.money}"
         )
 
         print(
-            f"Level: {player.level}"
+            f"Level: "
+            f"{player.level}"
         )
 
         print(
-            f"Experience: {player.experience}"
+            f"Experience: "
+            f"{player.experience}"
         )
 
         print(
-            f"Reputation: {player.reputation}"
+            f"Reputation: "
+            f"{player.reputation}"
         )
 
         print(
@@ -1016,7 +1058,12 @@ def main_menu(
             "\nChoose an option: "
         )
 
+        # ----------------------------------
+        # START TRIP
+        # ----------------------------------
+
         if choice == "1":
+
             start_trip(
                 player,
                 matatu,
@@ -1026,12 +1073,22 @@ def main_menu(
                 matatu_id
             )
 
+        # ----------------------------------
+        # MY MATATU
+        # ----------------------------------
+
         elif choice == "2":
+
             display_matatu_status(
                 matatu
             )
 
+        # ----------------------------------
+        # MAINTENANCE
+        # ----------------------------------
+
         elif choice == "3":
+
             maintenance_menu(
                 player,
                 matatu
@@ -1045,9 +1102,16 @@ def main_menu(
                 matatu
             )
 
-            print("\nGame saved.")
+            print(
+                "\nGame saved."
+            )
+
+        # ----------------------------------
+        # GARAGE
+        # ----------------------------------
 
         elif choice == "4":
+
             garage_menu(
                 player,
                 matatu
@@ -1061,24 +1125,39 @@ def main_menu(
                 matatu
             )
 
-            print("\nGame saved.")
+            print(
+                "\nGame saved."
+            )
+
+        # ----------------------------------
+        # MATATU SHOP
+        # ----------------------------------
 
         elif choice == "5":
+
             matatu_shop_menu(
                 player,
                 database,
                 player_id
             )
 
+        # ----------------------------------
+        # MY MATATUS
+        # ----------------------------------
+
         elif choice == "6":
-            new_matatu_id = my_matatus_menu(
-                database,
-                player_id,
-                player,
-                matatu_id
+
+            new_matatu_id = (
+                my_matatus_menu(
+                    database,
+                    player_id,
+                    player,
+                    matatu_id
+                )
             )
 
             if new_matatu_id != matatu_id:
+
                 new_matatu_data = (
                     database.get_matatu_by_id(
                         player_id,
@@ -1087,7 +1166,10 @@ def main_menu(
                 )
 
                 if new_matatu_data:
-                    matatu_id = new_matatu_id
+
+                    matatu_id = (
+                        new_matatu_id
+                    )
 
                     matatu = (
                         create_matatu_from_data(
@@ -1100,7 +1182,12 @@ def main_menu(
                         f"{matatu.name}"
                     )
 
+        # ----------------------------------
+        # TRIP HISTORY
+        # ----------------------------------
+
         elif choice == "7":
+
             display_trip_history(
                 database,
                 player_id
@@ -1110,7 +1197,12 @@ def main_menu(
                 "\nPress Enter to continue..."
             )
 
+        # ----------------------------------
+        # PLAYER STATS
+        # ----------------------------------
+
         elif choice == "8":
+
             display_player_stats(
                 player
             )
@@ -1119,7 +1211,12 @@ def main_menu(
                 "\nPress Enter to continue..."
             )
 
+        # ----------------------------------
+        # EXIT
+        # ----------------------------------
+
         elif choice == "9":
+
             save_game(
                 database,
                 player_id,
@@ -1128,7 +1225,9 @@ def main_menu(
                 matatu
             )
 
-            print("\nGame saved.")
+            print(
+                "\nGame saved."
+            )
 
             print(
                 "Thanks for playing Matwana."
@@ -1137,6 +1236,7 @@ def main_menu(
             break
 
         else:
+
             print(
                 "Invalid choice. "
                 "Please select 1-9."
@@ -1148,13 +1248,14 @@ def main_menu(
 # ==========================================
 
 def main():
+
     database = Database()
 
     database.create_tables()
 
-    # -------------------------
+    # ======================================
     # PLAYER
-    # -------------------------
+    # ======================================
 
     player = Player("Goon")
 
@@ -1163,6 +1264,7 @@ def main():
     )
 
     if player_data is None:
+
         player_id = database.create_player(
             player
         )
@@ -1172,6 +1274,7 @@ def main():
         )
 
     else:
+
         player_id = player_data[0]
 
         player.name = player_data[1]
@@ -1184,15 +1287,16 @@ def main():
             "\nPlayer progress loaded."
         )
 
-    # -------------------------
+    # ======================================
     # ACTIVE MATATU
-    # -------------------------
+    # ======================================
 
     matatu_data = database.get_matatu(
         player_id
     )
 
     if matatu_data is None:
+
         matatu = Matatu(
             name="Beast",
             model="Toyota Hiace"
@@ -1209,6 +1313,7 @@ def main():
         )
 
     else:
+
         matatu_id = matatu_data[0]
 
         matatu = (
@@ -1221,11 +1326,12 @@ def main():
             "Matatu progress loaded."
         )
 
-    # -------------------------
+    # ======================================
     # ROUTES
-    # -------------------------
+    # ======================================
 
     routes = [
+
         Route(
             name="CBD → Eastleigh",
             start_location="Nairobi CBD",
@@ -1267,9 +1373,9 @@ def main():
         )
     ]
 
-    # -------------------------
+    # ======================================
     # START GAME
-    # -------------------------
+    # ======================================
 
     main_menu(
         player,
@@ -1283,4 +1389,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
