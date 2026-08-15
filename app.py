@@ -428,9 +428,19 @@ def matatu_shop_menu(
 
         key, shop_matatu = selected
 
-        if shop_matatu["model"] in owned_models:
+        # ==========================================
+        # PURCHASE VALIDATION
+        # ==========================================
+
+        can_buy, message = MatatuShop.can_buy(
+            player,
+            key,
+            owned_models
+        )
+
+        if not can_buy:
             print(
-                "\nYou already own this matatu."
+                f"\n{message}"
             )
 
             input(
@@ -439,26 +449,9 @@ def matatu_shop_menu(
 
             continue
 
-        price = shop_matatu["price"]
-
-        if player.money < price:
-            print(
-                "\nYou don't have enough money."
-            )
-
-            print(
-                f"Required: KSh {price}"
-            )
-
-            print(
-                f"Your money: KSh {player.money}"
-            )
-
-            input(
-                "\nPress Enter to continue..."
-            )
-
-            continue
+        # ==========================================
+        # PURCHASE CONFIRMATION
+        # ==========================================
 
         print("\nPURCHASE")
         print("=" * 40)
@@ -475,7 +468,27 @@ def matatu_shop_menu(
 
         print(
             f"Price: "
-            f"KSh {price}"
+            f"KSh {shop_matatu['price']}"
+        )
+
+        print(
+            f"Capacity: "
+            f"{shop_matatu['capacity']} passengers"
+        )
+
+        print(
+            f"Fuel Capacity: "
+            f"{shop_matatu['fuel_capacity']}L"
+        )
+
+        print(
+            f"Speed: "
+            f"{shop_matatu['speed']}"
+        )
+
+        print(
+            f"Comfort: "
+            f"{shop_matatu['comfort']}"
         )
 
         confirm = input(
@@ -489,29 +502,39 @@ def matatu_shop_menu(
 
             continue
 
-        new_matatu = Matatu(
-            name=shop_matatu["name"],
-            model=shop_matatu["model"],
-            capacity=shop_matatu["capacity"]
+        # ==========================================
+        # CREATE MATATU
+        # ==========================================
+
+        new_matatu = MatatuShop.create_matatu(
+            key
         )
 
-        new_matatu.fuel_capacity = (
-            shop_matatu["fuel_capacity"]
-        )
+        if new_matatu is None:
+            print(
+                "\nUnable to create matatu."
+            )
 
-        new_matatu.fuel = (
-            shop_matatu["fuel_capacity"]
-        )
+            continue
 
-        new_matatu.speed = (
-            shop_matatu["speed"]
-        )
+        # ==========================================
+        # PAY FOR MATATU
+        # ==========================================
 
-        new_matatu.comfort = (
-            shop_matatu["comfort"]
-        )
+        purchase_price = shop_matatu["price"]
 
-        player.spend_money(price)
+        if not player.spend_money(
+            purchase_price
+        ):
+            print(
+                "\nPurchase failed."
+            )
+
+            continue
+
+        # ==========================================
+        # SAVE MATATU
+        # ==========================================
 
         database.create_matatu(
             player_id,
@@ -524,6 +547,10 @@ def matatu_shop_menu(
             player
         )
 
+        # ==========================================
+        # PURCHASE SUCCESS
+        # ==========================================
+
         print("\n" + "=" * 40)
         print("PURCHASE SUCCESSFUL")
         print("=" * 40)
@@ -534,8 +561,18 @@ def matatu_shop_menu(
         )
 
         print(
+            f"Model: "
+            f"{new_matatu.model}"
+        )
+
+        print(
             f"Money remaining: "
             f"KSh {player.money}"
+        )
+
+        print(
+            "\nThe matatu has been added "
+            "to My Matatus."
         )
 
         input(
