@@ -3,6 +3,7 @@ from models.matatu import Matatu
 from models.route import Route
 from models.passenger import Passenger
 from models.trip import Trip
+from models.garage import Garage
 
 
 def choose_route(routes):
@@ -141,6 +142,45 @@ def maintenance_menu(player, matatu):
             print("Invalid choice.")
 
 
+def garage_menu(player, matatu):
+    while True:
+        print("\nGARAGE")
+        print("=" * 40)
+
+        print(f"Money: KSh {player.money}")
+
+        print("\nAvailable upgrades:")
+
+        print("1. Engine - KSh 5,000")
+        print("2. Suspension - KSh 3,000")
+        print("3. Seats - KSh 4,000")
+        print("4. Fuel Tank - KSh 3,500")
+        print("5. Comfort - KSh 2,500")
+        print("6. Leave Garage")
+
+        choice = input("\nChoose an upgrade: ")
+
+        upgrades = {
+            "1": "engine",
+            "2": "suspension",
+            "3": "seats",
+            "4": "fuel_tank",
+            "5": "comfort"
+        }
+
+        if choice in upgrades:
+            Garage.upgrade_matatu(
+                player,
+                matatu,
+                upgrades[choice]
+            )
+
+        elif choice == "6":
+            break
+
+        else:
+            print("Invalid choice.")
+
 def main():
     player = Player("Goon")
 
@@ -200,6 +240,8 @@ def main():
     matatu.display_info()
 
     maintenance_menu(player, matatu)
+
+    garage_menu(player, matatu)
 
     selected_route = choose_route(routes)
 
