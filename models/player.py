@@ -1,8 +1,9 @@
 class Player:
+    XP_PER_LEVEL = 100
+
     def __init__(self, name):
         self.name = name
         self.money = 5000
-
         self.level = 1
         self.experience = 0
         self.reputation = 0
@@ -19,38 +20,34 @@ class Player:
 
     def add_experience(self, amount):
         if amount <= 0:
-            return []
+            return False
 
         self.experience += amount
 
-        level_ups = []
+        leveled_up = False
 
-        while self.experience >= self.experience_required():
-            required_xp = self.experience_required()
-
-            self.experience -= required_xp
+        while self.experience >= self.XP_PER_LEVEL:
+            self.experience -= self.XP_PER_LEVEL
             self.level += 1
+            leveled_up = True
 
-            level_ups.append(self.level)
-
-        for level in level_ups:
             print("\n" + "=" * 40)
             print("LEVEL UP!")
             print("=" * 40)
             print(
-                f"You reached Level {level}."
+                f"Congratulations, {self.name}!"
+            )
+            print(
+                f"You reached Level {self.level}."
             )
 
-        return level_ups
-
-    def experience_required(self):
-        return self.level * 100
+        return leveled_up
 
     def add_reputation(self, amount):
         self.reputation += amount
 
-        if self.reputation < 0:
-            self.reputation = 0
+    def get_xp_required(self):
+        return self.XP_PER_LEVEL
 
     def display_stats(self):
         print("\nPLAYER STATS")
@@ -58,19 +55,10 @@ class Player:
 
         print(f"Driver: {self.name}")
         print(f"Level: {self.level}")
-
         print(
             f"Experience: "
             f"{self.experience}/"
-            f"{self.experience_required()}"
+            f"{self.XP_PER_LEVEL}"
         )
-
-        print(
-            f"Reputation: "
-            f"{self.reputation}"
-        )
-
-        print(
-            f"Money: "
-            f"KSh {self.money}"
-        )
+        print(f"Reputation: {self.reputation}")
+        print(f"Money: KSh {self.money}")

@@ -1,4 +1,19 @@
 class Route:
+    REWARDS = {
+        "Easy": {
+            "experience": 20,
+            "reputation": 1
+        },
+        "Medium": {
+            "experience": 40,
+            "reputation": 2
+        },
+        "Hard": {
+            "experience": 70,
+            "reputation": 3
+        }
+    }
+
     def __init__(
         self,
         name,
@@ -20,6 +35,22 @@ class Route:
     def is_unlocked(self, player_level):
         return player_level >= self.required_level
 
+    def get_experience_reward(self):
+        reward = self.REWARDS.get(
+            self.difficulty,
+            self.REWARDS["Easy"]
+        )
+
+        return reward["experience"]
+
+    def get_reputation_reward(self):
+        reward = self.REWARDS.get(
+            self.difficulty,
+            self.REWARDS["Easy"]
+        )
+
+        return reward["reputation"]
+
     def display_info(self):
         print(f"\n{self.name}")
         print(f"From: {self.start_location}")
@@ -28,6 +59,10 @@ class Route:
         print(f"Fare: KSh {self.fare}")
         print(f"Difficulty: {self.difficulty}")
         print(
-            f"Required Level: "
-            f"{self.required_level}"
+            f"XP Reward: "
+            f"{self.get_experience_reward()}"
+        )
+        print(
+            f"Reputation: +"
+            f"{self.get_reputation_reward()}"
         )
