@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime
 
 
 class Database:
@@ -39,9 +40,9 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # -------------------------
+        # ======================================
         # PLAYERS
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS players (
@@ -54,9 +55,9 @@ class Database:
             )
         """)
 
-        # -------------------------
+        # ======================================
         # MATATUS
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS matatus (
@@ -70,11 +71,13 @@ class Database:
                 condition REAL NOT NULL,
                 speed INTEGER NOT NULL,
                 comfort INTEGER NOT NULL,
+
                 engine_level INTEGER NOT NULL DEFAULT 1,
                 suspension_level INTEGER NOT NULL DEFAULT 1,
                 seat_level INTEGER NOT NULL DEFAULT 1,
                 fuel_tank_level INTEGER NOT NULL DEFAULT 1,
                 comfort_level INTEGER NOT NULL DEFAULT 1,
+
                 active INTEGER NOT NULL DEFAULT 0,
 
                 FOREIGN KEY (player_id)
@@ -83,21 +86,67 @@ class Database:
             )
         """)
 
-        # -------------------------
+        # ======================================
         # TRIPS
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS trips (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+
                 player_id INTEGER NOT NULL,
+
                 route_name TEXT NOT NULL,
+                difficulty TEXT NOT NULL DEFAULT 'Easy',
+
                 passengers INTEGER NOT NULL,
-                earnings INTEGER NOT NULL,
-                fuel_used REAL NOT NULL,
+
+                base_earnings INTEGER NOT NULL DEFAULT 0,
+                earnings INTEGER NOT NULL DEFAULT 0,
+
+                fuel_used REAL NOT NULL DEFAULT 0,
+                fuel_cost INTEGER NOT NULL DEFAULT 0,
+
                 event_name TEXT,
-                experience_earned INTEGER NOT NULL,
-                reputation_earned INTEGER NOT NULL,
+                event_money INTEGER NOT NULL DEFAULT 0,
+
+                driving_style TEXT,
+
+                net_profit INTEGER NOT NULL DEFAULT 0,
+
+                experience_earned INTEGER NOT NULL DEFAULT 0,
+                reputation_earned INTEGER NOT NULL DEFAULT 0,
+
+                distance REAL NOT NULL DEFAULT 0,
+
+                completed_at TEXT,
+
+                FOREIGN KEY (player_id)
+                    REFERENCES players(id)
+                    ON DELETE CASCADE
+            )
+        """)
+
+        # ======================================
+        # ACHIEVEMENTS
+        # ======================================
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                player_id INTEGER NOT NULL,
+
+                achievement_key TEXT NOT NULL,
+                achievement_name TEXT NOT NULL,
+                description TEXT NOT NULL,
+
+                unlocked_at TEXT NOT NULL,
+
+                UNIQUE (
+                    player_id,
+                    achievement_key
+                ),
 
                 FOREIGN KEY (player_id)
                     REFERENCES players(id)
@@ -108,6 +157,7 @@ class Database:
         connection.commit()
         connection.close()
 
+        # Update older databases.
         self.migrate_database()
 
     # ==========================================
@@ -118,9 +168,9 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # -------------------------
+        # ======================================
         # MATATU COLUMNS
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             PRAGMA table_info(matatus)
@@ -133,7 +183,6 @@ class Database:
             for column in columns
         ]
 
-        # Add upgrade columns to older databases.
         upgrade_columns = {
             "engine_level": (
                 "INTEGER NOT NULL DEFAULT 1"
@@ -172,9 +221,89 @@ class Database:
                     f"added '{column_name}' column."
                 )
 
-        # -------------------------
+        # ======================================
+        # TRIP COLUMNS
+        # ======================================
+
+        cursor.execute("""
+            PRAGMA table_info(trips)
+        """)
+
+        trip_columns = cursor.fetchall()
+
+        trip_column_names = [
+            column[1]
+            for column in trip_columns
+        ]
+
+        trip_upgrade_columns = {
+            "difficulty": (
+                "TEXT NOT NULL DEFAULT 'Easy'"
+            ),
+            "base_earnings": (
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
+            "fuel_cost": (
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
+            "event_money": (
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
+            "driving_style": (
+                "TEXT"
+            ),
+            "net_profit": (
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
+            "distance": (
+                "REAL NOT NULL DEFAULT 0"
+            ),
+            "completed_at": (
+                "TEXT"
+            )
+        }
+
+        for column_name, column_definition in (
+            trip_upgrade_columns.items()
+        ):
+            if column_name not in trip_column_names:
+                cursor.execute(
+                    f"""
+                    ALTER TABLE trips
+                    ADD COLUMN {column_name}
+                    {column_definition}
+                    """
+                )
+
+                print(
+                    f"Database migration: "
+                    f"added trips."
+                    f"'{column_name}' column."
+                )
+
+        # ======================================
+        # FIX OLD TRIP DATA
+        # ======================================
+
+        # Old databases may have earnings but no
+        # base earnings or net profit information.
+        cursor.execute("""
+            UPDATE trips
+            SET base_earnings = earnings
+            WHERE base_earnings = 0
+            AND earnings > 0
+        """)
+
+        cursor.execute("""
+            UPDATE trips
+            SET net_profit = earnings
+            WHERE net_profit = 0
+            AND earnings > 0
+        """)
+
+        # ======================================
         # FIX ACTIVE MATATUS
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             SELECT DISTINCT player_id
@@ -231,9 +360,9 @@ class Database:
                     WHERE id = ?
                 """, (keep_active,))
 
-        # -------------------------
+        # ======================================
         # UNIQUE ACTIVE MATATU
-        # -------------------------
+        # ======================================
 
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS
@@ -321,6 +450,7 @@ class Database:
         ))
 
         connection.commit()
+
         connection.close()
 
     # ==========================================
@@ -638,31 +768,64 @@ class Database:
         if trip.event:
             event_name = trip.event["name"]
 
+        driving_style = None
+
+        if trip.driving_style:
+            driving_style = trip.driving_style["name"]
+
+        completed_at = datetime.now().isoformat(
+            timespec="seconds"
+        )
+
         cursor.execute("""
             INSERT INTO trips (
                 player_id,
                 route_name,
+                difficulty,
                 passengers,
+                base_earnings,
                 earnings,
                 fuel_used,
+                fuel_cost,
                 event_name,
+                event_money,
+                driving_style,
+                net_profit,
                 experience_earned,
-                reputation_earned
+                reputation_earned,
+                distance,
+                completed_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?
+            )
         """, (
             player_id,
             trip.route.name,
+            trip.route.difficulty,
             len(trip.passengers),
+            trip.base_earnings,
             trip.earnings,
             trip.fuel_used,
+            trip.fuel_cost,
             event_name,
+            trip.event_money,
+            driving_style,
+            trip.net_profit,
             trip.experience_earned,
-            trip.reputation_earned
+            trip.reputation_earned,
+            trip.route.distance,
+            completed_at
         ))
 
         connection.commit()
+
+        trip_id = cursor.lastrowid
+
         connection.close()
+
+        return trip_id
 
     def get_trip_history(
         self,
@@ -691,6 +854,282 @@ class Database:
         connection.close()
 
         return trips
+
+    # ==========================================
+    # STATISTICS
+    # ==========================================
+
+    def get_player_statistics(
+        self,
+        player_id
+    ):
+        """
+        Return overall statistics for a player.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                COUNT(*),
+                COALESCE(SUM(passengers), 0),
+                COALESCE(SUM(earnings), 0),
+                COALESCE(SUM(fuel_used), 0),
+                COALESCE(SUM(fuel_cost), 0),
+                COALESCE(SUM(net_profit), 0),
+                COALESCE(SUM(experience_earned), 0),
+                COALESCE(SUM(reputation_earned), 0),
+                COALESCE(SUM(distance), 0)
+            FROM trips
+            WHERE player_id = ?
+        """, (player_id,))
+
+        statistics = cursor.fetchone()
+
+        connection.close()
+
+        return {
+            "total_trips": statistics[0],
+            "total_passengers": statistics[1],
+            "total_earnings": statistics[2],
+            "total_fuel_used": statistics[3],
+            "total_fuel_cost": statistics[4],
+            "total_net_profit": statistics[5],
+            "total_experience": statistics[6],
+            "total_reputation": statistics[7],
+            "total_distance": statistics[8]
+        }
+
+    def get_best_trip(
+        self,
+        player_id
+    ):
+        """
+        Return the player's most profitable trip.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                route_name,
+                net_profit,
+                earnings,
+                passengers,
+                difficulty,
+                completed_at
+            FROM trips
+            WHERE player_id = ?
+            ORDER BY net_profit DESC
+            LIMIT 1
+        """, (player_id,))
+
+        trip = cursor.fetchone()
+
+        connection.close()
+
+        return trip
+
+    def get_route_statistics(
+        self,
+        player_id
+    ):
+        """
+        Return statistics grouped by route.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                route_name,
+                COUNT(*) AS trips,
+                COALESCE(SUM(passengers), 0),
+                COALESCE(SUM(earnings), 0),
+                COALESCE(SUM(net_profit), 0),
+                COALESCE(SUM(distance), 0)
+            FROM trips
+            WHERE player_id = ?
+            GROUP BY route_name
+            ORDER BY net_profit DESC
+        """, (player_id,))
+
+        statistics = cursor.fetchall()
+
+        connection.close()
+
+        return statistics
+
+    def get_driving_style_statistics(
+        self,
+        player_id
+    ):
+        """
+        Return statistics grouped by driving style.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                driving_style,
+                COUNT(*) AS trips,
+                COALESCE(SUM(earnings), 0),
+                COALESCE(SUM(net_profit), 0),
+                COALESCE(SUM(fuel_used), 0)
+            FROM trips
+            WHERE player_id = ?
+            AND driving_style IS NOT NULL
+            GROUP BY driving_style
+            ORDER BY trips DESC
+        """, (player_id,))
+
+        statistics = cursor.fetchall()
+
+        connection.close()
+
+        return statistics
+
+    # ==========================================
+    # ACHIEVEMENTS
+    # ==========================================
+
+    def achievement_unlocked(
+        self,
+        player_id,
+        achievement_key
+    ):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT 1
+            FROM achievements
+            WHERE player_id = ?
+            AND achievement_key = ?
+        """, (
+            player_id,
+            achievement_key
+        ))
+
+        unlocked = cursor.fetchone() is not None
+
+        connection.close()
+
+        return unlocked
+
+    def unlock_achievement(
+        self,
+        player_id,
+        achievement_key,
+        achievement_name,
+        description
+    ):
+        """
+        Unlock an achievement.
+
+        Returns True if the achievement was newly
+        unlocked and False if it already existed.
+        """
+
+        if self.achievement_unlocked(
+            player_id,
+            achievement_key
+        ):
+            return False
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        unlocked_at = datetime.now().isoformat(
+            timespec="seconds"
+        )
+
+        cursor.execute("""
+            INSERT INTO achievements (
+                player_id,
+                achievement_key,
+                achievement_name,
+                description,
+                unlocked_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            player_id,
+            achievement_key,
+            achievement_name,
+            description,
+            unlocked_at
+        ))
+
+        connection.commit()
+        connection.close()
+
+        return True
+
+    def get_achievements(
+        self,
+        player_id
+    ):
+        """
+        Return all unlocked achievements.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                achievement_key,
+                achievement_name,
+                description,
+                unlocked_at
+            FROM achievements
+            WHERE player_id = ?
+            ORDER BY id ASC
+        """, (player_id,))
+
+        achievements = cursor.fetchall()
+
+        connection.close()
+
+        return achievements
+
+    # ==========================================
+    # DATABASE RESET
+    # ==========================================
+
+    def delete_player_data(
+        self,
+        player_id
+    ):
+        """
+        Delete all data belonging to a player.
+
+        Foreign-key cascading removes matatus,
+        trips and achievements.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            DELETE FROM players
+            WHERE id = ?
+        """, (player_id,))
+
+        connection.commit()
+
+        deleted = cursor.rowcount > 0
+
+        connection.close()
+
+        return deleted
 
 
 # ==========================================
