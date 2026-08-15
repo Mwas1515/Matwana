@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 
@@ -5,12 +6,23 @@ class Database:
     def __init__(self, database_name="data/matwana.db"):
         self.database_name = database_name
 
+        os.makedirs(
+            os.path.dirname(self.database_name),
+            exist_ok=True
+        )
+
     def connect(self):
-        return sqlite3.connect(self.database_name)
+        return sqlite3.connect(
+            self.database_name
+        )
 
     def create_tables(self):
         connection = self.connect()
         cursor = connection.cursor()
+
+        # -------------------------
+        # PLAYERS TABLE
+        # -------------------------
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS players (
@@ -22,6 +34,10 @@ class Database:
                 reputation INTEGER NOT NULL
             )
         """)
+
+        # -------------------------
+        # MATATUS TABLE
+        # -------------------------
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS matatus (
@@ -46,6 +62,10 @@ class Database:
             )
         """)
 
+        # -------------------------
+        # TRIPS TABLE
+        # -------------------------
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS trips (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,30 +82,52 @@ class Database:
             )
         """)
 
+        connection.commit()
+        connection.close()
+
+        # Run migrations after tables exist.
+        self.migrate_database()
+
+    def migrate_database(self):
+        connection = self.connect()
+        cursor = connection.cursor()
+
         # -------------------------
-        # DATABASE MIGRATION
+        # CHECK MATATUS COLUMNS
         # -------------------------
 
         cursor.execute("""
             PRAGMA table_info(matatus)
         """)
 
-        columns = [
+        columns = cursor.fetchall()
+
+        column_names = [
             column[1]
-            for column in cursor.fetchall()
+            for column in columns
         ]
 
-        if "active" not in columns:
+        # Add active column to old databases.
+        if "active" not in column_names:
             cursor.execute("""
                 ALTER TABLE matatus
-                ADD COLUMN active INTEGER NOT NULL DEFAULT 0
+                ADD COLUMN active INTEGER
+                NOT NULL DEFAULT 0
             """)
 
-        # Make sure every player with a matatu
-        # has one active matatu.
+            print(
+                "Database migration: "
+                "added 'active' column."
+            )
+
+        # -------------------------
+        # ENSURE ACTIVE MATATU
+        # -------------------------
+
         cursor.execute("""
-            SELECT DISTINCT player_id
+            SELECT player_id
             FROM matatus
+            GROUP BY player_id
         """)
 
         player_ids = cursor.fetchall()
@@ -108,7 +150,7 @@ class Database:
                     SELECT id
                     FROM matatus
                     WHERE player_id = ?
-                    ORDER BY id
+                    ORDER BY id ASC
                     LIMIT 1
                 """, (player_id,))
 
@@ -215,6 +257,8 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
+        # If this matatu should be active,
+        # deactivate the player's other matatus.
         if active:
             cursor.execute("""
                 UPDATE matatus
@@ -240,7 +284,10 @@ class Database:
                 comfort_level,
                 active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?
+            )
         """, (
             player_id,
             matatu.name,
@@ -268,6 +315,10 @@ class Database:
         return matatu_id
 
     def get_matatu(self, player_id):
+        """
+        Return the player's active matatu.
+        """
+
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -300,38 +351,6 @@ class Database:
 
         return matatu_data
 
-    def get_all_matatus(self, player_id):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        cursor.execute("""
-            SELECT
-                id,
-                name,
-                model,
-                capacity,
-                fuel,
-                fuel_capacity,
-                condition,
-                speed,
-                comfort,
-                engine_level,
-                suspension_level,
-                seat_level,
-                fuel_tank_level,
-                comfort_level,
-                active
-            FROM matatus
-            WHERE player_id = ?
-            ORDER BY id
-        """, (player_id,))
-
-        matatus = cursor.fetchall()
-
-        connection.close()
-
-        return matatus
-
     def get_matatu_by_id(
         self,
         player_id,
@@ -358,11 +377,11 @@ class Database:
                 comfort_level,
                 active
             FROM matatus
-            WHERE id = ?
-            AND player_id = ?
+            WHERE player_id = ?
+            AND id = ?
         """, (
-            matatu_id,
-            player_id
+            player_id,
+            matatu_id
         ))
 
         matatu_data = cursor.fetchone()
@@ -370,6 +389,38 @@ class Database:
         connection.close()
 
         return matatu_data
+
+    def get_all_matatus(self, player_id):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                name,
+                model,
+                capacity,
+                fuel,
+                fuel_capacity,
+                condition,
+                speed,
+                comfort,
+                engine_level,
+                suspension_level,
+                seat_level,
+                fuel_tank_level,
+                comfort_level,
+                active
+            FROM matatus
+            WHERE player_id = ?
+            ORDER BY id ASC
+        """, (player_id,))
+
+        matatus = cursor.fetchall()
+
+        connection.close()
+
+        return matatus
 
     def set_active_matatu(
         self,
@@ -379,6 +430,8 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
+        # Make sure the matatu belongs
+        # to this player.
         cursor.execute("""
             SELECT id
             FROM matatus
@@ -395,12 +448,14 @@ class Database:
             connection.close()
             return False
 
+        # Deactivate all matatus.
         cursor.execute("""
             UPDATE matatus
             SET active = 0
             WHERE player_id = ?
         """, (player_id,))
 
+        # Activate selected matatu.
         cursor.execute("""
             UPDATE matatus
             SET active = 1
@@ -465,7 +520,11 @@ class Database:
     # TRIP METHODS
     # -------------------------
 
-    def save_trip(self, player_id, trip):
+    def save_trip(
+        self,
+        player_id,
+        trip
+    ):
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -500,7 +559,10 @@ class Database:
         connection.commit()
         connection.close()
 
-    def get_trip_history(self, player_id):
+    def get_trip_history(
+        self,
+        player_id
+    ):
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -531,4 +593,6 @@ if __name__ == "__main__":
 
     database.create_tables()
 
-    print("Database initialized successfully.")
+    print(
+        "Database initialized successfully."
+    )
