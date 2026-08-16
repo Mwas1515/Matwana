@@ -7,6 +7,8 @@ from models.garage import Garage
 from models.matatu_shop import MatatuShop
 from database.database import Database
 from models.achievement_manager import AchievementManager
+from models.achievement import Achievement
+
 
 # ==========================================
 # MATATU HELPERS
@@ -71,9 +73,7 @@ def choose_route(routes, player):
             choice = int(choice)
 
             if 1 <= choice <= len(routes):
-                selected_route = routes[
-                    choice - 1
-                ]
+                selected_route = routes[choice - 1]
 
                 if not selected_route.is_unlocked(
                     player.level
@@ -142,7 +142,6 @@ def maintenance_menu(player, matatu):
                 print(
                     "Please enter a valid number."
                 )
-
                 continue
 
             if litres <= 0:
@@ -150,7 +149,6 @@ def maintenance_menu(player, matatu):
                     "Amount must be greater "
                     "than zero."
                 )
-
                 continue
 
             fuel_space = (
@@ -162,7 +160,6 @@ def maintenance_menu(player, matatu):
                 print(
                     "Fuel tank is already full."
                 )
-
                 continue
 
             actual_litres = min(
@@ -217,7 +214,6 @@ def maintenance_menu(player, matatu):
                 print(
                     "Please enter a valid number."
                 )
-
                 continue
 
             if amount <= 0:
@@ -225,7 +221,6 @@ def maintenance_menu(player, matatu):
                     "Amount must be greater "
                     "than zero."
                 )
-
                 continue
 
             available_condition = (
@@ -237,7 +232,6 @@ def maintenance_menu(player, matatu):
                     "Matatu is already in "
                     "perfect condition."
                 )
-
                 continue
 
             actual_repair = min(
@@ -298,12 +292,7 @@ def garage_menu(
     player_id,
     matatu_id
 ):
-    """
-    Upgrade the active matatu.
-
-    Every successful upgrade is immediately
-    saved to the database.
-    """
+    """Upgrade the active matatu."""
 
     while True:
         print("\nGARAGE")
@@ -347,13 +336,11 @@ def garage_menu(
             )
 
             if upgraded:
-                # Save matatu upgrades.
                 database.save_matatu(
                     matatu_id,
                     matatu
                 )
 
-                # Save player's money.
                 database.save_player(
                     player_id,
                     player
@@ -410,7 +397,6 @@ def matatu_shop_menu(
             print(
                 "\nPlease enter a valid number."
             )
-
             continue
 
         choice = int(choice)
@@ -423,14 +409,13 @@ def matatu_shop_menu(
             print(
                 "\nInvalid choice."
             )
-
             continue
 
         key, shop_matatu = selected
 
-        # ==========================================
+        # -------------------------
         # PURCHASE VALIDATION
-        # ==========================================
+        # -------------------------
 
         can_buy, message = MatatuShop.can_buy(
             player,
@@ -449,9 +434,9 @@ def matatu_shop_menu(
 
             continue
 
-        # ==========================================
+        # -------------------------
         # PURCHASE CONFIRMATION
-        # ==========================================
+        # -------------------------
 
         print("\nPURCHASE")
         print("=" * 40)
@@ -499,12 +484,11 @@ def matatu_shop_menu(
             print(
                 "\nPurchase cancelled."
             )
-
             continue
 
-        # ==========================================
+        # -------------------------
         # CREATE MATATU
-        # ==========================================
+        # -------------------------
 
         new_matatu = MatatuShop.create_matatu(
             key
@@ -514,12 +498,11 @@ def matatu_shop_menu(
             print(
                 "\nUnable to create matatu."
             )
-
             continue
 
-        # ==========================================
+        # -------------------------
         # PAY FOR MATATU
-        # ==========================================
+        # -------------------------
 
         purchase_price = shop_matatu["price"]
 
@@ -529,12 +512,11 @@ def matatu_shop_menu(
             print(
                 "\nPurchase failed."
             )
-
             continue
 
-        # ==========================================
+        # -------------------------
         # SAVE MATATU
-        # ==========================================
+        # -------------------------
 
         database.create_matatu(
             player_id,
@@ -547,9 +529,9 @@ def matatu_shop_menu(
             player
         )
 
-        # ==========================================
+        # -------------------------
         # PURCHASE SUCCESS
-        # ==========================================
+        # -------------------------
 
         print("\n" + "=" * 40)
         print("PURCHASE SUCCESSFUL")
@@ -640,7 +622,6 @@ def switch_matatu(
             print(
                 "Please enter a valid number."
             )
-
             continue
 
         choice = int(choice)
@@ -649,7 +630,6 @@ def switch_matatu(
             print(
                 "Invalid choice."
             )
-
             continue
 
         selected_matatu = matatus[
@@ -857,33 +837,37 @@ def display_trip_history(
         print(
             "No trips completed yet."
         )
-
         return
 
     for trip in trips:
         trip_id = trip[0]
         route_name = trip[1]
-        passengers = trip[2]
-        earnings = trip[3]
-        fuel_used = trip[4]
-        event_name = trip[5]
-        experience = trip[6]
-        reputation = trip[7]
+
+        # Updated database structure:
+        # 0 = id
+        # 1 = route_name
+        # 2 = distance
+        # 3 = passengers
+        # 4 = earnings
+        # 5 = fuel_used
+        # 6 = event_name
+        # 7 = experience
+        # 8 = reputation
+
+        distance = trip[2]
+        passengers = trip[3]
+        earnings = trip[4]
+        fuel_used = trip[5]
+        event_name = trip[6]
+        experience = trip[7]
+        reputation = trip[8]
 
         print(f"\nTrip #{trip_id}")
         print(f"Route: {route_name}")
-
-        print(
-            f"Passengers: {passengers}"
-        )
-
-        print(
-            f"Earnings: KSh {earnings}"
-        )
-
-        print(
-            f"Fuel used: {fuel_used}L"
-        )
+        print(f"Distance: {distance} km")
+        print(f"Passengers: {passengers}")
+        print(f"Earnings: KSh {earnings}")
+        print(f"Fuel used: {fuel_used}L")
 
         if event_name:
             print(
@@ -897,6 +881,90 @@ def display_trip_history(
         print(
             f"Reputation: +{reputation}"
         )
+
+
+# ==========================================
+# ACHIEVEMENTS
+# ==========================================
+
+def display_achievements(
+    database,
+    player_id
+):
+    print("\nACHIEVEMENTS")
+    print("=" * 50)
+
+    unlocked_ids = (
+        database.get_achievement_ids(
+            player_id
+        )
+    )
+
+    all_achievements = (
+        Achievement.get_all_achievements()
+    )
+
+    if not all_achievements:
+        print(
+            "No achievements are available."
+        )
+
+        input(
+            "\nPress Enter to continue..."
+        )
+
+        return
+
+    for achievement_id in all_achievements:
+        achievement = (
+            Achievement.get_achievement(
+                achievement_id
+            )
+        )
+
+        if achievement is None:
+            continue
+
+        unlocked = (
+            achievement_id in unlocked_ids
+        )
+
+        if unlocked:
+            status = "UNLOCKED"
+        else:
+            status = "LOCKED"
+
+        print("\n" + "-" * 50)
+
+        print(
+            f"🏆 {achievement['name']}"
+        )
+
+        print(
+            f"Status: {status}"
+        )
+
+        print(
+            f"Description: "
+            f"{achievement['description']}"
+        )
+
+        print(
+            f"Reward: "
+            f"KSh {achievement['reward']}"
+        )
+
+    print("\n" + "=" * 50)
+
+    print(
+        f"Unlocked: "
+        f"{len(unlocked_ids)}/"
+        f"{len(all_achievements)}"
+    )
+
+    input(
+        "\nPress Enter to continue..."
+    )
 
 
 # ==========================================
@@ -1043,10 +1111,18 @@ def start_trip(
     if trip.complete_trip():
         trip.display_summary()
 
+        # -------------------------
+        # SAVE TRIP
+        # -------------------------
+
         database.save_trip(
             player_id,
             trip
         )
+
+        # -------------------------
+        # PROCESS ACHIEVEMENTS
+        # -------------------------
 
         new_achievements = (
             AchievementManager.process_achievements(
@@ -1055,6 +1131,10 @@ def start_trip(
                 player_id
             )
         )
+
+        # -------------------------
+        # SAVE PLAYER + MATATU
+        # -------------------------
 
         save_game(
             database,
@@ -1067,6 +1147,12 @@ def start_trip(
         print(
             "\nTrip saved to database."
         )
+
+        if new_achievements:
+            print(
+                f"{len(new_achievements)} "
+                f"achievement(s) unlocked!"
+            )
 
     else:
         print(
@@ -1091,9 +1177,9 @@ def main_menu(
     matatu_id
 ):
     while True:
-        print("\n" + "=" * 40)
+        print("\n" + "=" * 45)
         print("MATWANA")
-        print("=" * 40)
+        print("=" * 45)
 
         print(
             f"Driver: {player.name}"
@@ -1128,7 +1214,8 @@ def main_menu(
         print("6. My Matatus")
         print("7. Trip History")
         print("8. Player Stats")
-        print("9. Exit")
+        print("9. Achievements")
+        print("10. Exit")
 
         choice = input(
             "\nChoose an option: "
@@ -1273,10 +1360,20 @@ def main_menu(
             )
 
         # -------------------------
-        # EXIT
+        # ACHIEVEMENTS
         # -------------------------
 
         elif choice == "9":
+            display_achievements(
+                database,
+                player_id
+            )
+
+        # -------------------------
+        # EXIT
+        # -------------------------
+
+        elif choice == "10":
             save_game(
                 database,
                 player_id,
@@ -1296,7 +1393,7 @@ def main_menu(
         else:
             print(
                 "Invalid choice. "
-                "Please select 1-9."
+                "Please select 1-10."
             )
 
 
@@ -1307,6 +1404,7 @@ def main_menu(
 def main():
     database = Database()
 
+    # Create/update all database tables.
     database.create_tables()
 
     # ==========================================
