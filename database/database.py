@@ -39,9 +39,9 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # -------------------------
+        # ==========================================
         # PLAYERS
-        # -------------------------
+        # ==========================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS players (
@@ -54,9 +54,9 @@ class Database:
             )
         """)
 
-        # -------------------------
+        # ==========================================
         # MATATUS
-        # -------------------------
+        # ==========================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS matatus (
@@ -83,9 +83,9 @@ class Database:
             )
         """)
 
-        # -------------------------
+        # ==========================================
         # TRIPS
-        # -------------------------
+        # ==========================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS trips (
@@ -105,9 +105,9 @@ class Database:
             )
         """)
 
-        # -------------------------
+        # ==========================================
         # ACHIEVEMENTS
-        # -------------------------
+        # ==========================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS achievements (
@@ -131,6 +131,7 @@ class Database:
         connection.commit()
         connection.close()
 
+        # Run migrations after creating tables.
         self.migrate_database()
 
     # ==========================================
@@ -141,9 +142,9 @@ class Database:
         connection = self.connect()
         cursor = connection.cursor()
 
-        # -------------------------
-        # MATATU COLUMNS
-        # -------------------------
+        # ==========================================
+        # MATATU MIGRATION
+        # ==========================================
 
         cursor.execute("""
             PRAGMA table_info(matatus)
@@ -156,7 +157,6 @@ class Database:
             for column in columns
         ]
 
-        # Add upgrade columns to older databases.
         upgrade_columns = {
             "engine_level": (
                 "INTEGER NOT NULL DEFAULT 1"
@@ -195,9 +195,161 @@ class Database:
                     f"added '{column_name}' column."
                 )
 
-        # -------------------------
-        # FIX ACTIVE MATATUS
-        # -------------------------
+        # ==========================================
+        # ACHIEVEMENT MIGRATION
+        # ==========================================
+
+        cursor.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+            AND name = 'achievements'
+        """)
+
+        achievements_table = cursor.fetchone()
+
+        if achievements_table:
+
+            cursor.execute("""
+                PRAGMA table_info(achievements)
+            """)
+
+            achievement_columns = cursor.fetchall()
+
+            achievement_column_names = [
+                column[1]
+                for column in achievement_columns
+            ]
+
+            # --------------------------------------
+            # OLD ACHIEVEMENT TABLE
+            # --------------------------------------
+            #
+            # Older versions of the project may
+            # have created the achievements table
+            # without achievement_id.
+            #
+            # SQLite cannot directly add a required
+            # column in every migration scenario, so
+            # rebuild the table when necessary.
+            #
+
+            if "achievement_id" not in (
+                achievement_column_names
+            ):
+
+                print(
+                    "Database migration: "
+                    "updating achievements table..."
+                )
+
+                # Disable foreign keys temporarily
+                # while rebuilding the table.
+                cursor.execute(
+                    "PRAGMA foreign_keys = OFF"
+                )
+
+                # Rename old table.
+                cursor.execute("""
+                    ALTER TABLE achievements
+                    RENAME TO achievements_old
+                """)
+
+                # Create correct table.
+                cursor.execute("""
+                    CREATE TABLE achievements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        player_id INTEGER NOT NULL,
+                        achievement_id TEXT NOT NULL,
+                        unlocked_at TIMESTAMP
+                            DEFAULT CURRENT_TIMESTAMP,
+
+                        FOREIGN KEY (player_id)
+                            REFERENCES players(id)
+                            ON DELETE CASCADE,
+
+                        UNIQUE(
+                            player_id,
+                            achievement_id
+                        )
+                    )
+                """)
+
+                # Try to preserve existing achievement
+                # information where possible.
+                #
+                # Different older versions may have
+                # used different column names.
+                old_columns = [
+                    column[1]
+                    for column in achievement_columns
+                ]
+
+                if (
+                    "player_id" in old_columns
+                    and "achievement" in old_columns
+                ):
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO achievements (
+                            player_id,
+                            achievement_id
+                        )
+                        SELECT
+                            player_id,
+                            achievement
+                        FROM achievements_old
+                    """)
+
+                elif (
+                    "player_id" in old_columns
+                    and "name" in old_columns
+                ):
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO achievements (
+                            player_id,
+                            achievement_id
+                        )
+                        SELECT
+                            player_id,
+                            name
+                        FROM achievements_old
+                    """)
+
+                elif (
+                    "player_id" in old_columns
+                    and "id" in old_columns
+                ):
+                    # If the old table only stored an
+                    # achievement ID in its id column,
+                    # preserve it as text.
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO achievements (
+                            player_id,
+                            achievement_id
+                        )
+                        SELECT
+                            player_id,
+                            CAST(id AS TEXT)
+                        FROM achievements_old
+                    """)
+
+                # Remove old table.
+                cursor.execute("""
+                    DROP TABLE achievements_old
+                """)
+
+                cursor.execute(
+                    "PRAGMA foreign_keys = ON"
+                )
+
+                print(
+                    "Database migration: "
+                    "achievements table updated."
+                )
+
+        # ==========================================
+        # FIX ACTIVE MATATU
+        # ==========================================
 
         cursor.execute("""
             SELECT DISTINCT player_id
@@ -221,6 +373,7 @@ class Database:
 
             # No active matatu.
             if not active_matatus:
+
                 cursor.execute("""
                     SELECT id
                     FROM matatus
@@ -232,6 +385,7 @@ class Database:
                 first_matatu = cursor.fetchone()
 
                 if first_matatu:
+
                     cursor.execute("""
                         UPDATE matatus
                         SET active = 1
@@ -240,6 +394,7 @@ class Database:
 
             # Multiple active matatus.
             elif len(active_matatus) > 1:
+
                 keep_active = active_matatus[0][0]
 
                 cursor.execute("""
@@ -254,9 +409,9 @@ class Database:
                     WHERE id = ?
                 """, (keep_active,))
 
-        # -------------------------
+        # ==========================================
         # UNIQUE ACTIVE MATATU
-        # -------------------------
+        # ==========================================
 
         cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS
@@ -727,9 +882,8 @@ class Database:
         """
         Unlock an achievement for a player.
 
-        Returns True when the achievement was
-        newly unlocked and False if it was
-        already unlocked.
+        Returns True when newly unlocked.
+        Returns False if already unlocked.
         """
 
         connection = self.connect()
@@ -756,7 +910,8 @@ class Database:
 
             unlocked = False
 
-        connection.close()
+        finally:
+            connection.close()
 
         return unlocked
 
@@ -822,8 +977,7 @@ class Database:
         player_id
     ):
         """
-        Return only the achievement IDs
-        unlocked by a player.
+        Return only achievement IDs.
         """
 
         connection = self.connect()
@@ -851,9 +1005,9 @@ class Database:
         achievement_id
     ):
         """
-        Remove an achievement from a player.
+        Remove an achievement.
 
-        This is mainly useful for testing.
+        Mainly useful for testing.
         """
 
         connection = self.connect()

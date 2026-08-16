@@ -6,7 +6,7 @@ from models.trip import Trip
 from models.garage import Garage
 from models.matatu_shop import MatatuShop
 from database.database import Database
-
+from models.achievement_manager import AchievementManager
 
 # ==========================================
 # MATATU HELPERS
@@ -1046,6 +1046,14 @@ def start_trip(
         database.save_trip(
             player_id,
             trip
+        )
+
+        new_achievements = (
+            AchievementManager.process_achievements(
+                player,
+                database,
+                player_id
+            )
         )
 
         save_game(

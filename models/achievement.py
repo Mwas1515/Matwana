@@ -118,7 +118,7 @@ class Achievement:
             return
 
         print("\n" + "=" * 40)
-        print("🏆 ACHIEVEMENT")
+        print("ACHIEVEMENT")
         print("=" * 40)
 
         print(
