@@ -4,6 +4,10 @@ from models.achievement import Achievement
 class AchievementManager:
     """Manage player achievements."""
 
+    # ==========================================
+    # BUILD STATISTICS
+    # ==========================================
+
     @staticmethod
     def build_statistics(
         player,
@@ -15,40 +19,50 @@ class AchievementManager:
         achievement requirements.
         """
 
-        # Get completed trips.
+        # -------------------------
+        # TRIP STATISTICS
+        # -------------------------
+
         trips = database.get_trip_history(
             player_id
         )
 
         total_trips = len(trips)
 
-        # Calculate total earnings.
+        # Total earnings from completed trips.
         total_earnings = sum(
             trip[3]
             for trip in trips
         )
 
-        # Calculate total passengers.
+        # Total passengers transported.
         total_passengers = sum(
             trip[2]
             for trip in trips
         )
 
-        # Calculate total distance.
+        # Total distance.
         #
-        # The current trip database stores the
-        # route name rather than distance, so
-        # distance achievements will be handled
-        # separately once route statistics are
-        # added to the database.
+        # The current trips table stores the
+        # route name but does not store distance.
+        #
+        # This will remain 0 until route distance
+        # is added to the trip database.
         total_distance = 0
 
-        # Count owned matatus.
+        # -------------------------
+        # MATATU STATISTICS
+        # -------------------------
+
         matatus = database.get_all_matatus(
             player_id
         )
 
         total_matatus = len(matatus)
+
+        # -------------------------
+        # PLAYER STATISTICS
+        # -------------------------
 
         return {
             "trips": total_trips,
@@ -61,6 +75,10 @@ class AchievementManager:
             "matatus": total_matatus
         }
 
+    # ==========================================
+    # CHECK ACHIEVEMENTS
+    # ==========================================
+
     @classmethod
     def check_achievements(
         cls,
@@ -69,11 +87,11 @@ class AchievementManager:
         player_id
     ):
         """
-        Check all achievements and unlock
-        any newly completed ones.
+        Check every achievement and unlock any
+        achievement whose requirement has been met.
 
-        Returns a list of newly unlocked
-        achievement IDs.
+        Returns:
+            list: Newly unlocked achievement IDs.
         """
 
         statistics = cls.build_statistics(
@@ -84,19 +102,27 @@ class AchievementManager:
 
         newly_unlocked = []
 
-        for achievement_id in (
+        # Get all available achievements.
+        achievements = (
             Achievement.get_all_achievements()
-        ):
-            # Skip achievements that have
-            # already been unlocked.
+        )
+
+        for achievement_id in achievements:
+
+            # -------------------------
+            # ALREADY UNLOCKED?
+            # -------------------------
+
             if database.has_achievement(
                 player_id,
                 achievement_id
             ):
                 continue
 
-            # Check whether the requirement
-            # has been completed.
+            # -------------------------
+            # CHECK REQUIREMENT
+            # -------------------------
+
             completed = (
                 Achievement.check_requirement(
                     achievement_id,
@@ -107,7 +133,10 @@ class AchievementManager:
             if not completed:
                 continue
 
-            # Save achievement to database.
+            # -------------------------
+            # SAVE ACHIEVEMENT
+            # -------------------------
+
             unlocked = (
                 database.unlock_achievement(
                     player_id,
@@ -122,6 +151,10 @@ class AchievementManager:
 
         return newly_unlocked
 
+    # ==========================================
+    # DISPLAY ACHIEVEMENTS
+    # ==========================================
+
     @classmethod
     def display_new_achievements(
         cls,
@@ -129,18 +162,19 @@ class AchievementManager:
         player
     ):
         """
-        Display achievements that were
-        newly unlocked.
+        Display newly unlocked achievements
+        and give their rewards.
         """
 
         if not achievement_ids:
             return
 
         print("\n" + "=" * 50)
-        print(" ACHIEVEMENTS UNLOCKED!")
+        print("ACHIEVEMENTS UNLOCKED!")
         print("=" * 50)
 
         for achievement_id in achievement_ids:
+
             achievement = (
                 Achievement.get_achievement(
                     achievement_id
@@ -152,8 +186,17 @@ class AchievementManager:
 
             reward = achievement["reward"]
 
-            # Give the player the achievement reward.
-            player.earn_money(reward)
+            # -------------------------
+            # GIVE REWARD
+            # -------------------------
+
+            player.earn_money(
+                reward
+            )
+
+            # -------------------------
+            # DISPLAY ACHIEVEMENT
+            # -------------------------
 
             print(
                 f"\n {achievement['name']}"
@@ -170,6 +213,10 @@ class AchievementManager:
 
         print("\n" + "=" * 50)
 
+    # ==========================================
+    # PROCESS ACHIEVEMENTS
+    # ==========================================
+
     @classmethod
     def process_achievements(
         cls,
@@ -180,7 +227,14 @@ class AchievementManager:
         """
         Check, unlock, reward and display
         newly completed achievements.
+
+        Returns:
+            list: Newly unlocked achievement IDs.
         """
+
+        # -------------------------
+        # CHECK ACHIEVEMENTS
+        # -------------------------
 
         newly_unlocked = (
             cls.check_achievements(
@@ -190,6 +244,10 @@ class AchievementManager:
             )
         )
 
+        # -------------------------
+        # REWARD & DISPLAY
+        # -------------------------
+
         if newly_unlocked:
             cls.display_new_achievements(
                 newly_unlocked,
@@ -197,3 +255,91 @@ class AchievementManager:
             )
 
         return newly_unlocked
+
+    # ==========================================
+    # DISPLAY ALL UNLOCKED ACHIEVEMENTS
+    # ==========================================
+
+    @classmethod
+    def display_achievements(
+        cls,
+        database,
+        player_id
+    ):
+        """
+        Display all achievements currently
+        unlocked by the player.
+        """
+
+        achievements = (
+            database.get_achievements(
+                player_id
+            )
+        )
+
+        print("\n" + "=" * 50)
+        print(" MY ACHIEVEMENTS")
+        print("=" * 50)
+
+        if not achievements:
+            print(
+                "\nNo achievements unlocked yet."
+            )
+
+            return
+
+        for achievement_id, unlocked_at in achievements:
+
+            achievement = (
+                Achievement.get_achievement(
+                    achievement_id
+                )
+            )
+
+            if achievement is None:
+                continue
+
+            print(
+                f"\n {achievement['name']}"
+            )
+
+            print(
+                f"   {achievement['description']}"
+            )
+
+            print(
+                f"   Reward: "
+                f"KSh {achievement['reward']}"
+            )
+
+            print(
+                f"   Unlocked: "
+                f"{unlocked_at}"
+            )
+
+        print("\n" + "=" * 50)
+
+    # ==========================================
+    # GET ACHIEVEMENT PROGRESS
+    # ==========================================
+
+    @classmethod
+    def get_progress(
+        cls,
+        player,
+        database,
+        player_id
+    ):
+        """
+        Return achievement statistics for the
+        current player.
+
+        Useful for displaying achievement
+        progress in the future.
+        """
+
+        return cls.build_statistics(
+            player,
+            database,
+            player_id
+        )
