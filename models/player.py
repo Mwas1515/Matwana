@@ -1,5 +1,8 @@
 class Player:
+    """Represent the player and manage progression."""
+
     BASE_XP_PER_LEVEL = 100
+    XP_INCREASE_PER_LEVEL = 50
     LEVEL_UP_REWARD = 500
 
     def __init__(self, name):
@@ -14,12 +17,18 @@ class Player:
     # ==========================================
 
     def earn_money(self, amount):
+        """Add money to the player's balance."""
+
         if amount <= 0:
-            return
+            return False
 
         self.money += amount
 
+        return True
+
     def spend_money(self, amount):
+        """Spend money if the player can afford it."""
+
         if amount <= 0:
             return False
 
@@ -38,36 +47,44 @@ class Player:
         """
         Return the XP required to reach the next level.
 
-        XP requirement increases as the player levels up.
+        XP requirement increases by 50 for every
+        level reached.
         """
 
-        return self.BASE_XP_PER_LEVEL + (
-            (self.level - 1) * 50
+        return (
+            self.BASE_XP_PER_LEVEL
+            + (
+                (self.level - 1)
+                * self.XP_INCREASE_PER_LEVEL
+            )
         )
 
     def add_experience(self, amount):
         """
-        Add XP and automatically handle level-ups.
+        Add XP and automatically process level-ups.
 
-        Returns True if the player leveled up.
+        Returns a list of levels reached.
         """
 
         if amount <= 0:
-            return False
+            return []
 
         self.experience += amount
 
-        leveled_up = False
+        levels_gained = []
 
         while self.experience >= self.get_xp_required():
             xp_required = self.get_xp_required()
 
             self.experience -= xp_required
+
             self.level += 1
 
-            leveled_up = True
+            levels_gained.append(
+                self.level
+            )
 
-            # Level-up reward
+            # Level-up reward.
             self.earn_money(
                 self.LEVEL_UP_REWARD
             )
@@ -77,11 +94,13 @@ class Player:
             print("=" * 45)
 
             print(
-                f"Congratulations, {self.name}!"
+                f"Congratulations, "
+                f"{self.name}!"
             )
 
             print(
-                f"You reached Level {self.level}!"
+                f"You reached "
+                f"Level {self.level}!"
             )
 
             print(
@@ -94,17 +113,25 @@ class Player:
                 f"{self.get_xp_required()} XP."
             )
 
-        return leveled_up
+        return levels_gained
 
     # ==========================================
     # REPUTATION
     # ==========================================
 
     def add_reputation(self, amount):
-        if amount == 0:
-            return
+        """
+        Add or remove reputation.
+
+        Reputation cannot fall below zero.
+        """
 
         self.reputation += amount
+
+        if self.reputation < 0:
+            self.reputation = 0
+
+        return self.reputation
 
     # ==========================================
     # PLAYER PROGRESS
@@ -112,7 +139,8 @@ class Player:
 
     def get_xp_progress(self):
         """
-        Return current XP and required XP.
+        Return current XP and XP required
+        for the next level.
         """
 
         return (
@@ -120,7 +148,39 @@ class Player:
             self.get_xp_required()
         )
 
+    def get_xp_percentage(self):
+        """Return XP progress as a percentage."""
+
+        required = self.get_xp_required()
+
+        if required <= 0:
+            return 0
+
+        percentage = (
+            self.experience
+            / required
+        ) * 100
+
+        return min(
+            percentage,
+            100
+        )
+
+    # ==========================================
+    # DISPLAY
+    # ==========================================
+
     def display_stats(self):
+        """Display the player's current statistics."""
+
+        current_xp, required_xp = (
+            self.get_xp_progress()
+        )
+
+        percentage = (
+            self.get_xp_percentage()
+        )
+
         print("\nPLAYER STATS")
         print("=" * 45)
 
@@ -134,8 +194,13 @@ class Player:
 
         print(
             f"Experience: "
-            f"{self.experience}/"
-            f"{self.get_xp_required()}"
+            f"{current_xp}/"
+            f"{required_xp}"
+        )
+
+        print(
+            f"XP Progress: "
+            f"{percentage:.1f}%"
         )
 
         print(
