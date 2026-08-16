@@ -70,11 +70,13 @@ class Database:
                 condition REAL NOT NULL,
                 speed INTEGER NOT NULL,
                 comfort INTEGER NOT NULL,
+
                 engine_level INTEGER NOT NULL DEFAULT 1,
                 suspension_level INTEGER NOT NULL DEFAULT 1,
                 seat_level INTEGER NOT NULL DEFAULT 1,
                 fuel_tank_level INTEGER NOT NULL DEFAULT 1,
                 comfort_level INTEGER NOT NULL DEFAULT 1,
+
                 active INTEGER NOT NULL DEFAULT 0,
 
                 FOREIGN KEY (player_id)
@@ -92,6 +94,7 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 player_id INTEGER NOT NULL,
                 route_name TEXT NOT NULL,
+                distance REAL NOT NULL DEFAULT 0,
                 passengers INTEGER NOT NULL,
                 earnings INTEGER NOT NULL,
                 fuel_used REAL NOT NULL,
@@ -131,7 +134,8 @@ class Database:
         connection.commit()
         connection.close()
 
-        # Run migrations after creating tables.
+        # Run migrations after creating the
+        # initial database structure.
         self.migrate_database()
 
     # ==========================================
@@ -139,11 +143,16 @@ class Database:
     # ==========================================
 
     def migrate_database(self):
+        """
+        Update older database versions without
+        deleting existing player progress.
+        """
+
         connection = self.connect()
         cursor = connection.cursor()
 
         # ==========================================
-        # MATATU MIGRATION
+        # MATATU COLUMNS
         # ==========================================
 
         cursor.execute("""
@@ -196,159 +205,35 @@ class Database:
                 )
 
         # ==========================================
-        # ACHIEVEMENT MIGRATION
+        # TRIP COLUMNS
         # ==========================================
 
         cursor.execute("""
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-            AND name = 'achievements'
+            PRAGMA table_info(trips)
         """)
 
-        achievements_table = cursor.fetchone()
+        trip_columns = cursor.fetchall()
 
-        if achievements_table:
+        trip_column_names = [
+            column[1]
+            for column in trip_columns
+        ]
 
+        # Add distance to older databases.
+        if "distance" not in trip_column_names:
             cursor.execute("""
-                PRAGMA table_info(achievements)
+                ALTER TABLE trips
+                ADD COLUMN distance
+                REAL NOT NULL DEFAULT 0
             """)
 
-            achievement_columns = cursor.fetchall()
-
-            achievement_column_names = [
-                column[1]
-                for column in achievement_columns
-            ]
-
-            # --------------------------------------
-            # OLD ACHIEVEMENT TABLE
-            # --------------------------------------
-            #
-            # Older versions of the project may
-            # have created the achievements table
-            # without achievement_id.
-            #
-            # SQLite cannot directly add a required
-            # column in every migration scenario, so
-            # rebuild the table when necessary.
-            #
-
-            if "achievement_id" not in (
-                achievement_column_names
-            ):
-
-                print(
-                    "Database migration: "
-                    "updating achievements table..."
-                )
-
-                # Disable foreign keys temporarily
-                # while rebuilding the table.
-                cursor.execute(
-                    "PRAGMA foreign_keys = OFF"
-                )
-
-                # Rename old table.
-                cursor.execute("""
-                    ALTER TABLE achievements
-                    RENAME TO achievements_old
-                """)
-
-                # Create correct table.
-                cursor.execute("""
-                    CREATE TABLE achievements (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        player_id INTEGER NOT NULL,
-                        achievement_id TEXT NOT NULL,
-                        unlocked_at TIMESTAMP
-                            DEFAULT CURRENT_TIMESTAMP,
-
-                        FOREIGN KEY (player_id)
-                            REFERENCES players(id)
-                            ON DELETE CASCADE,
-
-                        UNIQUE(
-                            player_id,
-                            achievement_id
-                        )
-                    )
-                """)
-
-                # Try to preserve existing achievement
-                # information where possible.
-                #
-                # Different older versions may have
-                # used different column names.
-                old_columns = [
-                    column[1]
-                    for column in achievement_columns
-                ]
-
-                if (
-                    "player_id" in old_columns
-                    and "achievement" in old_columns
-                ):
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO achievements (
-                            player_id,
-                            achievement_id
-                        )
-                        SELECT
-                            player_id,
-                            achievement
-                        FROM achievements_old
-                    """)
-
-                elif (
-                    "player_id" in old_columns
-                    and "name" in old_columns
-                ):
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO achievements (
-                            player_id,
-                            achievement_id
-                        )
-                        SELECT
-                            player_id,
-                            name
-                        FROM achievements_old
-                    """)
-
-                elif (
-                    "player_id" in old_columns
-                    and "id" in old_columns
-                ):
-                    # If the old table only stored an
-                    # achievement ID in its id column,
-                    # preserve it as text.
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO achievements (
-                            player_id,
-                            achievement_id
-                        )
-                        SELECT
-                            player_id,
-                            CAST(id AS TEXT)
-                        FROM achievements_old
-                    """)
-
-                # Remove old table.
-                cursor.execute("""
-                    DROP TABLE achievements_old
-                """)
-
-                cursor.execute(
-                    "PRAGMA foreign_keys = ON"
-                )
-
-                print(
-                    "Database migration: "
-                    "achievements table updated."
-                )
+            print(
+                "Database migration: "
+                "added 'distance' column to trips."
+            )
 
         # ==========================================
-        # FIX ACTIVE MATATU
+        # FIX ACTIVE MATATUS
         # ==========================================
 
         cursor.execute("""
@@ -371,9 +256,11 @@ class Database:
 
             active_matatus = cursor.fetchall()
 
+            # --------------------------------------
             # No active matatu.
-            if not active_matatus:
+            # --------------------------------------
 
+            if not active_matatus:
                 cursor.execute("""
                     SELECT id
                     FROM matatus
@@ -385,16 +272,17 @@ class Database:
                 first_matatu = cursor.fetchone()
 
                 if first_matatu:
-
                     cursor.execute("""
                         UPDATE matatus
                         SET active = 1
                         WHERE id = ?
                     """, (first_matatu[0],))
 
+            # --------------------------------------
             # Multiple active matatus.
-            elif len(active_matatus) > 1:
+            # --------------------------------------
 
+            elif len(active_matatus) > 1:
                 keep_active = active_matatus[0][0]
 
                 cursor.execute("""
@@ -695,7 +583,10 @@ class Database:
             matatu_id
         ))
 
-        exists = cursor.fetchone() is not None
+        exists = (
+            cursor.fetchone()
+            is not None
+        )
 
         connection.close()
 
@@ -808,6 +699,13 @@ class Database:
         player_id,
         trip
     ):
+        """
+        Save a completed trip.
+
+        Distance is stored so achievement
+        statistics can calculate total distance.
+        """
+
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -820,6 +718,7 @@ class Database:
             INSERT INTO trips (
                 player_id,
                 route_name,
+                distance,
                 passengers,
                 earnings,
                 fuel_used,
@@ -827,10 +726,11 @@ class Database:
                 experience_earned,
                 reputation_earned
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             player_id,
             trip.route.name,
+            trip.route.distance,
             len(trip.passengers),
             trip.earnings,
             trip.fuel_used,
@@ -846,6 +746,22 @@ class Database:
         self,
         player_id
     ):
+        """
+        Return the player's trip history.
+
+        Tuple order:
+
+        0 = id
+        1 = route name
+        2 = distance
+        3 = passengers
+        4 = earnings
+        5 = fuel used
+        6 = event name
+        7 = experience earned
+        8 = reputation earned
+        """
+
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -853,6 +769,7 @@ class Database:
             SELECT
                 id,
                 route_name,
+                distance,
                 passengers,
                 earnings,
                 fuel_used,
@@ -870,6 +787,34 @@ class Database:
 
         return trips
 
+    def get_total_distance(
+        self,
+        player_id
+    ):
+        """
+        Return the total distance travelled
+        by a player.
+        """
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                COALESCE(
+                    SUM(distance),
+                    0
+                )
+            FROM trips
+            WHERE player_id = ?
+        """, (player_id,))
+
+        total_distance = cursor.fetchone()[0]
+
+        connection.close()
+
+        return total_distance
+
     # ==========================================
     # ACHIEVEMENT METHODS
     # ==========================================
@@ -882,8 +827,9 @@ class Database:
         """
         Unlock an achievement for a player.
 
-        Returns True when newly unlocked.
-        Returns False if already unlocked.
+        Returns True when the achievement was
+        newly unlocked and False if it was
+        already unlocked.
         """
 
         connection = self.connect()
@@ -910,8 +856,7 @@ class Database:
 
             unlocked = False
 
-        finally:
-            connection.close()
+        connection.close()
 
         return unlocked
 
@@ -977,7 +922,8 @@ class Database:
         player_id
     ):
         """
-        Return only achievement IDs.
+        Return only the achievement IDs
+        unlocked by a player.
         """
 
         connection = self.connect()
@@ -1005,7 +951,7 @@ class Database:
         achievement_id
     ):
         """
-        Remove an achievement.
+        Remove an achievement from a player.
 
         Mainly useful for testing.
         """
