@@ -937,7 +937,7 @@ def display_achievements(
         print("\n" + "-" * 50)
 
         print(
-            f"🏆 {achievement['name']}"
+            f"{achievement['name']}"
         )
 
         print(
