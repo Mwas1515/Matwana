@@ -300,19 +300,3 @@ class MainWindow:
         """Start the GUI event loop."""
 
         self.root.mainloop()
-
-if __name__ == "__main__":
-    from models.player import Player
-    from database.database import Database
-
-    test_player = Player("Goon")
-
-    database = Database()
-
-    window = MainWindow(
-        test_player,
-        database,
-        None
-    )
-
-    window.run()

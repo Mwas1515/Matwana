@@ -8,6 +8,7 @@ from models.matatu_shop import MatatuShop
 from database.database import Database
 from models.achievement_manager import AchievementManager
 from models.achievement import Achievement
+from gui.main_window import MainWindow
 
 
 # ==========================================
@@ -843,7 +844,7 @@ def display_trip_history(
         trip_id = trip[0]
         route_name = trip[1]
 
-        # Updated database structure:
+        # Database structure:
         # 0 = id
         # 1 = route_name
         # 2 = distance
@@ -1398,13 +1399,68 @@ def main_menu(
 
 
 # ==========================================
+# ROUTES
+# ==========================================
+
+def create_routes():
+    """Create all available game routes."""
+
+    return [
+        Route(
+            name="CBD → Eastleigh",
+            start_location="Nairobi CBD",
+            destination="Eastleigh",
+            distance=8,
+            fare=80,
+            difficulty="Easy",
+            required_level=1
+        ),
+
+        Route(
+            name="CBD → Kasarani",
+            start_location="Nairobi CBD",
+            destination="Kasarani",
+            distance=12,
+            fare=70,
+            difficulty="Easy",
+            required_level=1
+        ),
+
+        Route(
+            name="CBD → Rongai",
+            start_location="Nairobi CBD",
+            destination="Rongai",
+            distance=18,
+            fare=100,
+            difficulty="Medium",
+            required_level=2
+        ),
+
+        Route(
+            name="CBD → Githurai",
+            start_location="Nairobi CBD",
+            destination="Githurai",
+            distance=18,
+            fare=100,
+            difficulty="Hard",
+            required_level=3
+        )
+    ]
+
+
+# ==========================================
 # MAIN
 # ==========================================
 
 def main():
+    """Start Matwana."""
+
     database = Database()
 
-    # Create/update all database tables.
+    # ==========================================
+    # DATABASE SETUP
+    # ==========================================
+
     database.create_tables()
 
     # ==========================================
@@ -1480,60 +1536,19 @@ def main():
     # ROUTES
     # ==========================================
 
-    routes = [
-        Route(
-            name="CBD → Eastleigh",
-            start_location="Nairobi CBD",
-            destination="Eastleigh",
-            distance=8,
-            fare=80,
-            difficulty="Easy",
-            required_level=1
-        ),
-
-        Route(
-            name="CBD → Kasarani",
-            start_location="Nairobi CBD",
-            destination="Kasarani",
-            distance=12,
-            fare=70,
-            difficulty="Easy",
-            required_level=1
-        ),
-
-        Route(
-            name="CBD → Rongai",
-            start_location="Nairobi CBD",
-            destination="Rongai",
-            distance=18,
-            fare=100,
-            difficulty="Medium",
-            required_level=2
-        ),
-
-        Route(
-            name="CBD → Githurai",
-            start_location="Nairobi CBD",
-            destination="Githurai",
-            distance=18,
-            fare=100,
-            difficulty="Hard",
-            required_level=3
-        )
-    ]
+    routes = create_routes()
 
     # ==========================================
-    # START GAME
+    # START GUI
     # ==========================================
 
-    main_menu(
+    window = MainWindow(
         player,
-        matatu,
-        routes,
         database,
-        player_id,
-        matatu_id
+        player_id
     )
+
+    window.run()
 
 
 # ==========================================
